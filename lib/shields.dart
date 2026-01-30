@@ -2,7 +2,8 @@ import 'package:space_fugue/ship_system.dart';
 
 enum StockShield { basicEnergon }
 Map<StockShield,Shield> stockShields = {
-  StockShield.basicEnergon : Shield("Basic Energon Shield", ShieldType.energon,
+  StockShield.basicEnergon : Shield("Basic Energon Shield",
+    shieldType: ShieldType.energon,
     strength: 200,
     stability: .5,
     repairDifficulty: .5,
@@ -11,6 +12,7 @@ Map<StockShield,Shield> stockShields = {
     baseRepairCost: 2.5,
     rarity: .05,
     powerDraw: .25,
+    mass: 50
   )
 };
 
@@ -25,16 +27,21 @@ enum ShieldEgo {
 class Shield extends ShipSystem {
   int strength;
   double rechargeRate;
-  final ShieldType type;
+  final ShieldType shieldType;
   final ShieldEgo ego;
 
-  Shield(super.name,this.type,{this.ego = ShieldEgo.none,
+  Shield(super.name,{
+    super.type = ShipSystemType.shield,
+    this.ego = ShieldEgo.none,
+    required this.shieldType,
     required this.strength,
     required this.rechargeRate,
     required super.baseCost,
     required super.baseRepairCost,
-    required super.rarity,
-    required super.powerDraw, required super.stability, required super.repairDifficulty,
-
+    required super.powerDraw,
+    required super.mass,
+    super.rarity,
+    super.stability,
+    super.repairDifficulty,
   });
 }

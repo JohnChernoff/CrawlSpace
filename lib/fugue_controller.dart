@@ -38,16 +38,14 @@ class FugueController {
     if (ship == null) {
       fm.addMsg("You're not in a ship."); return;
     }
-    if (ship.energy < ship.warpEngine) {
-      ship.energy = ship.warpEngine;
-      if (ship.takeDamage(fm.rnd.nextInt(ship.warpEngine))) {
+    if (ship.burnEnergy(50)) {  //TODO: use warp engine props
+      if (ship.takeDamage(fm.rnd.nextInt(30))) { //use warp engine props
         fm.endGame("Blown up trying to warp"); return;
+      } else {
+        fm.warp(ship);
       }
-    }
-    if (ship.warps.value > 0) {
-      fm.warp(ship);
     } else {
-      fm.addMsg("Out of emergency warps.");
+      fm.addMsg("Insufficient energy."); //fm.addMsg("Out of emergency warps.");
     }
   }
 

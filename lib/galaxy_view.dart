@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:space_fugue/ascii_view.dart';
 import 'package:space_fugue/fugue_model.dart';
-import 'package:space_fugue/game_view.dart';
 import 'package:space_fugue/message_log.dart';
 import 'galaxy_map.dart';
 
@@ -35,8 +35,8 @@ class GalaxyViewState extends State<GalaxyView> {
               flex: 1,
               child: fm.gameOver //TODO: autoscroll
                   ? MessageLog(messageNotifier: fm.msgWorker.messageNotifier,postGame: true) : hideMap
-                    ? GestureDetector(onDoubleTap: () {setState(() { hideMap = false; }); }, child: GameView(fm,bigLog: true))
-                    : GameView(fm,bigLog: true)
+                    ? GestureDetector(onDoubleTap: () {setState(() { hideMap = false; }); }, child: AsciiView(fm))
+                    : AsciiView(fm)
           ),
           Container(color: Colors.black, height: 12),
           if (mapMode != MapMode.hidden) Expanded(

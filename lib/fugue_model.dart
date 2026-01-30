@@ -87,13 +87,15 @@ class FugueModel with ChangeNotifier {
       agents.add(Agent("Agent ${faker.name.lastName()}", galaxy.homeSystem, 25));
     }
     final playCell = player.system.map.rndCell(rnd);
-    Ship playShip = Ship("HMS Sebastian",player,loc: SystemLocation(player.system, playCell));
+    Ship playShip = Ship("HMS Sebastian",
+        player,shipClass: ShipClass.mentok,loc: SystemLocation(player.system, playCell));
     pilotMap[player] = playShip;
     for (System sys in galaxy.systems) {
       for (int i=0;i<rnd.nextInt(3);i++) {
         Pilot pilot = Pilot(faker.name.fullName());
         final cell = sys.map.rndCell(rnd);
-        Ship ship = Ship("${Rng.rndColorName(rnd)}${faker.animal.snake()}",pilot, loc: SystemLocation(sys, cell));
+        Ship ship = Ship("${Rng.rndColorName(rnd)}${faker.animal.snake()}",
+            pilot,shipClass: ShipClass.mentok,loc: SystemLocation(sys, cell));
         pilotMap[pilot] = ship;
         pilots.add(pilot);
       }
@@ -418,7 +420,7 @@ class FugueModel with ChangeNotifier {
     } else {
       List<System> path = [];
       int steps = 3;
-      int r = (player.techLevel() / 10).ceil() * playerShip!.cargo.value;
+      int r = 100; //(player.techLevel() / 10).ceil() * playerShip!.cargo.value;
       int reward = (r/2).floor() + rnd.nextInt(r);
       Planet? planet; int tries = 0;
       while (planet == null && tries++ < 100) {
@@ -452,57 +454,6 @@ class FugueModel with ChangeNotifier {
     }
   }
 
-  void modShip(ShipSystem1 shipSys) {
-      int change = shipSys.modify(1);
-      if (change > 0) {
-        int cost = shipSys.type.baseCost * change;
-        if (player.credits < cost) {
-          addMsg("You can't afford this.");
-          shipSys.modify(-change);
-        } else {
-          player.credits -= cost;
-          addMsg("Modified for $cost credits.");
-        }
-      }
-      pilotAction(player,ActionType.planet, mod: .1);
-  }
-
-  void repair({all=false,int amount = 1,bool update = true}) {
-    Ship? ship = playerShip;
-    if (ship == null) {
-      addMsg("You're not in a ship."); return;
-    }
-    int n = (all || amount > ship.damage ? ship.damage : amount);
-    int debt = n * costRepair;
-    if (player.credits < debt) {
-      n = (player.credits / costRepair).floor(); debt = n * costRepair;
-      addMsg("You can't afford that much; repairing as much as possible...");
-    }
-    ship.repair(n);
-    player.credits -= debt;
-    addMsg("$n damage repaired ($debt credits).",updateAfter: update);
-  }
-
-  void recharge({all=false,int amount = 1,bool free = false, bool update = true}) {
-    Ship? ship = playerShip;
-    if (ship == null) {
-      addMsg("You're not in a ship."); return;
-    }
-    int spentCharge = ship.battery.value - ship.energy;
-    int n = (all || amount > spentCharge ? spentCharge : amount);
-    int debt = 0;
-    if (!free) {
-      debt = n * costRecharge;
-      if (player.credits < debt) {
-        n = (player.credits / costRecharge).floor(); debt = n * costRecharge;
-        addMsg("You can't afford that much; recharging as much as possible...");
-      }
-      player.credits -= debt;
-    }
-    ship.recharge(n);
-    addMsg("$n energy recharged ${debt > 0 ? '($debt credits)' : ''}.",updateAfter: update);
-  }
-
   energyScoop() {
     Ship? ship = playerShip;
     if (ship == null) {
@@ -512,7 +463,8 @@ class FugueModel with ChangeNotifier {
       goPlan(null); return;
     }
     //if (player.lastAct == ActionType.energyScoop && !pirateCheck(numPirates: 2)) return;
-    int amount = ((ship.energyConvertor.value/(Rng.biasedRndInt(rnd,mean: 50, min: 25, max: 80))) * player.system.starClass.power).floor();
+    double amount = 50;
+    //((ship.energyConvertor.value/(Rng.biasedRndInt(rnd,mean: 50, min: 25, max: 80))) * player.system.starClass.power).floor();
     addMsg("Scooping class ${player.system.starClass.name} star... gained ${ship.recharge(amount)} energy");
     pilotAction(player,ActionType.energyScoop);
   }
@@ -566,7 +518,7 @@ class FugueModel with ChangeNotifier {
   void warp(Ship ship) {
     System system = galaxy.getRandomLinkableSystem(player.system, ignoreTraffic: true) ?? galaxy.getRandomSystem(player.system);
     if (newSystem(player,system)) {
-      ship.warps.value--;
+      //ship.warps.value--;
       addMsg("*** EMERGENCY WARP ACTIVATED ***");
       if (ship.pilot == player) {
         for (Agent agent in agents) {
@@ -666,12 +618,15 @@ class FugueModel with ChangeNotifier {
       l.level.map.removeShip(ship);
       l.level.map.addShip(ship, destination);
       if (l is SystemLocation) {
-        ship.loc = SystemLocation(l.level,destination);
+        ship.loc = SystemLocation(l.level,destination); //TODO: sublight engine?
         //ship.pilot?.auCooldown += (ship.subLightEngine.baseAutPerUnitTraversal * dist).round();
         pilotAction(ship.pilot, ActionType.movement);
       } else if (l is ImpulseLocation) {
-        ship.loc = ImpulseLocation(l.systemLoc,l.level,destination);
-        pilotAction(ship.pilot, ActionType.movement,actionAuts: (ship.impEngine.baseAutPerUnitTraversal * dist).round());
+        final engine = ship.impEngine;
+        if (engine != null) {
+          ship.loc = ImpulseLocation(l.systemLoc,l.level,destination);
+          pilotAction(ship.pilot, ActionType.movement,actionAuts: (engine.baseAutPerUnitTraversal * dist).round());
+        }
       }
     }
   }

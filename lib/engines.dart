@@ -1,20 +1,15 @@
 import 'package:space_fugue/ship_system.dart';
 
-enum StockImpulseEngine {
-  basicFed
-}
-
+enum StockImpulseEngine { basicFed }
 Map<StockImpulseEngine,ImpulseEngine> stockImpulseEngines = {
   StockImpulseEngine.basicFed : ImpulseEngine("Mark I Fed",
-    type: ImpulseEngineType.fedMark1,
+    engineType: ImpulseEngineType.fedMark1,
     baseAutPerUnitTraversal: 10,
     baseCost: 300,
     efficiency: .5,
     baseRepairCost: 2,
-    rarity: .1,
     powerDraw: .5,
-    stability: .8,
-    repairDifficulty: .1
+    mass: 80,
   )};
 
 class Engine extends ShipSystem {
@@ -22,14 +17,16 @@ class Engine extends ShipSystem {
   double efficiency;
 
   Engine(super.name, {
+    super.type = ShipSystemType.engine,
     required this.baseAutPerUnitTraversal,
     required this.efficiency,
     required super.baseCost,
     required super.baseRepairCost,
-    required super.rarity,
     required super.powerDraw,
-    required super.stability,
-    required super.repairDifficulty});
+    super.rarity,
+    super.stability,
+    super.repairDifficulty,
+    required super.mass});
 }
 
 enum ImpulseEngineType {
@@ -41,19 +38,20 @@ enum ImpulseEngineEgo {
 }
 
 class ImpulseEngine extends Engine {
-  ImpulseEngineType type;
+  ImpulseEngineType engineType;
   ImpulseEngineEgo ego;
 
   ImpulseEngine(super.name, {
-    required this.type,
+    required this.engineType,
     this.ego = ImpulseEngineEgo.none,
     required super.baseAutPerUnitTraversal,
     required super.efficiency,
     required super.baseCost,
     required super.baseRepairCost,
-    required super.rarity,
     required super.powerDraw,
-    required super.stability,
-    required super.repairDifficulty
+    required super.mass,
+    super.rarity,
+    super.stability,
+    super.repairDifficulty,
   });
 }

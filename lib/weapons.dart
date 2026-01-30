@@ -16,10 +16,7 @@ enum StockWeapon { basicLaser }
 Map<StockWeapon,Weapon> stockWeapons = {
   StockWeapon.basicLaser : Weapon( "Basic Laser",
     baseCost: 100,
-    stability: .7,
     baseRepairCost: 1.5,
-    repairDifficulty: .5,
-    rarity: .1,
     powerDraw: .1,
     dmgDice: 1,
     dmgDiceSides: 6,
@@ -32,6 +29,7 @@ Map<StockWeapon,Weapon> stockWeapons = {
     baseAccuracy: .8,
     dmgRangeConfig: const RangeConfig(idealRange: 1, minRange: 0, maxRange: 4, closeAttenuation: .1, farAttenuation: .7),
     accuracyRangeConfig: const RangeConfig(idealRange: 1, minRange: 0, maxRange: 4, closeAttenuation: .1, farAttenuation: .33),
+    mass: 10,
   )};
 
 //enum RangeAttenuation {  linear,exponential }
@@ -89,6 +87,7 @@ class Weapon extends ShipSystem {
   final GalaxyLevel level;
 
   Weapon(super.name,{
+    super.type = ShipSystemType.weapon,
     required this.dmgDice,
     required this.dmgDiceSides,
     required this.dmgBase,
@@ -105,10 +104,11 @@ class Weapon extends ShipSystem {
     this.critConfig = const CritConfig(),
     required super.baseCost,
     required super.baseRepairCost,
-    required super.rarity,
     required super.powerDraw,
-    required super.stability,
-    required super.repairDifficulty
+    required super.mass,
+    super.rarity,
+    super.stability,
+    super.repairDifficulty,
   });
 
   double fire(double dist, math.Random rnd, {Ship? targetShip}) {
