@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:space_fugue/fugue_model.dart';
 import 'package:space_fugue/ship.dart';
 import 'coord_3d.dart';
 
@@ -11,11 +12,15 @@ class Level {
 abstract class GridCell {
   final Coord3D coord; //Set<Ship> ships = {};
   GridCell(this.coord);
-  bool empty(Grid grid, {countPlayer = true}) {
+  bool empty(Grid grid, {countPlayer = true});
+  bool hasShips(Grid grid,{countPlayer = true}) {
     final ships = (grid.shipMap[this] ?? {});
-    if (ships.isNotEmpty && (countPlayer || ships.length > 2 || ships.first.npc)) return false;
-    return true;
+    if (ships.isNotEmpty && (countPlayer || ships.length > 2 || ships.first.npc)) return true;
+    return false;
   }
+
+  String toScannerString(Grid grid);
+  bool scannable(Grid grid,ScannerMode mode);
 
   @override
   String toString() {

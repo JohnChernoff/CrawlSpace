@@ -1,8 +1,10 @@
 import 'dart:collection';
 import 'dart:math';
 import 'dart:ui';
+import 'package:space_fugue/fugue_model.dart';
 import 'package:space_fugue/planet.dart';
 import 'package:space_fugue/rng.dart';
+import 'package:space_fugue/ship.dart';
 import 'coord_3d.dart';
 import 'grid.dart';
 import 'impulse.dart';
@@ -54,17 +56,21 @@ class SectorCell extends GridCell {
   Planet? planet;
   StellarClass? starClass;
   bool starOne,blackHole;
-  double nebula,ionStorm;
+  double nebula,ionStorm,asteroids;
   int impulseSeed;
 
   SectorCell(super.coord, this.impulseSeed, {
     this.planet,this.starClass, this.starOne = false, this.blackHole = false,
-    this.nebula = 0, this.ionStorm = 0
+    this.nebula = 0, this.ionStorm = 0, this.asteroids = 0
   });
+
+  bool get hasNebula => nebula > 0;
+  bool get hasIonStorm => ionStorm > 0;
+  bool get hasAsteroids => asteroids > 0;
 
   @override
   bool empty(Grid grid, {countPlayer = true}) { //print("Chceking enpty");
-    if (!super.empty(grid)) return false;
+    if (super.hasShips(grid,countPlayer: countPlayer)) return false;
     if (planet != null) return false;
     if (starClass != null) return false;
     if (starOne || blackHole) return false;
@@ -73,8 +79,37 @@ class SectorCell extends GridCell {
   }
 
   @override
+  String toScannerString(Grid grid) {
+    StringBuffer sb = StringBuffer(toString());
+    for (Ship ship in grid.shipMap[this] ?? {}) {
+      sb.write("\n$ship");
+    }
+    return sb.toString();
+  }
+
+  @override
   String toString() {
-    return "${super.toString()}, nebula: $nebula, ion: $ionStorm, planet: $planet, star: $starClass, blackhole: $blackHole";
+    StringBuffer sb = StringBuffer(super.toString());
+    if (starClass != null) sb.write(", $starClass");
+    if (planet != null) sb.write(", ${planet!.shortString()}");
+    if (hasAsteroids) sb.write(", roid: ${asteroids.toStringAsFixed(2)}");
+    if (hasNebula) sb.write(", neb: ${nebula.toStringAsFixed(2)}");
+    if (hasIonStorm) sb.write(", ion:, ${ionStorm.toStringAsFixed(2)}");
+    return sb.toString();
+  }
+
+  @override
+  bool scannable(Grid grid,ScannerMode mode) {
+    if (mode == ScannerMode.all) return true;
+    if (mode.scaningShips && hasShips(grid)) return true;
+    if (mode.scaningPlanets && planet != null) return true;
+    if (mode.scaningStars && starClass != null) return true;
+    if (mode.scaningNeb && hasNebula) return true;
+    if (mode.scaningIons && hasIonStorm) return true;
+    if (mode.scaningRoids && hasAsteroids) return true;
+    if (mode.scaningStarOne && starOne) return true;
+    if (mode.scaningBlackhole && blackHole) return true;
+    return false;
   }
 }
 

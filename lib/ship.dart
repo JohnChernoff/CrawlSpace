@@ -208,4 +208,9 @@ class Ship {
     return "$name: $hullStrength hull, ${currentShields ?? currentShieldStrength} shields";
   }
 
+  @override
+  String toString() {
+    return name;
+  }
+
 }

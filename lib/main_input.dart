@@ -24,6 +24,12 @@ class HyperSpaceIntent extends Intent {
   const HyperSpaceIntent();
 }
 
+class ScannerModeIntent extends Intent {
+  final bool forwards;
+  final ScannerMode? mode;
+  const ScannerModeIntent({this.mode,this.forwards = true});
+}
+
 class MainInput extends StatelessWidget {
   final Widget child;
   final FugueModel fm;
@@ -99,6 +105,9 @@ class MainInput extends StatelessWidget {
 
         LogicalKeySet(LogicalKeyboardKey.keyI):
         const OpenInventoryIntent(),
+
+        LogicalKeySet(LogicalKeyboardKey.keyS):
+        const ScannerModeIntent(mode: null),
       },
       actions: {
         DirectionIntent: CallbackAction<DirectionIntent>(
@@ -128,6 +137,14 @@ class MainInput extends StatelessWidget {
             return null;
           },
         ),
+        ScannerModeIntent: CallbackAction<ScannerModeIntent>(
+          onInvoke: (intent) {
+            if (intent.mode == null) {
+              fm.toggleScannerMode(forwards: intent.forwards);
+            }
+            return null;
+          }
+        )
       },
       child: child,
     );

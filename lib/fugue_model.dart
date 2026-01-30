@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:collection/collection.dart';
 import 'package:faker_dart/faker_dart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_force_directed_graph/flutter_force_directed_graph.dart';
@@ -25,6 +26,17 @@ import 'options.dart';
 
 enum MusicalMood {intro,danger,planet,space}
 enum InputMode {main,inventory,hyperspace,planet,repair,techShop,broadcast,dnaShop,tavern}
+enum ScannerMode {
+  all,objects,storms,field,ships,planets,stars,ion,neb,roid,oddities;
+  bool get scaningShips => this == ScannerMode.ships || this == ScannerMode.objects;
+  bool get scaningPlanets => this == ScannerMode.planets || this == ScannerMode.objects;
+  bool get scaningStars => this == ScannerMode.stars || this == ScannerMode.objects;
+  bool get scaningIons => this == ScannerMode.ion || this == ScannerMode.storms || this == ScannerMode.field;
+  bool get scaningNeb => this == ScannerMode.neb || this == ScannerMode.field;
+  bool get scaningRoids => this == ScannerMode.roid || this == ScannerMode.field;
+  bool get scaningBlackhole => this == ScannerMode.oddities;
+  bool get scaningStarOne => this == ScannerMode.oddities;
+}
 const blownUp = -1;
 
 class FugueModel with ChangeNotifier {
@@ -53,6 +65,7 @@ class FugueModel with ChangeNotifier {
   late FugueController controller;
   InputMode inputMode = InputMode.main;
   Map<String,System> currentLinkMap = {};
+  ScannerMode scannerMode = ScannerMode.all;
 
   FugueModel(this.galaxy,String playerName) {
     controller = FugueController(this);
@@ -152,19 +165,39 @@ class FugueModel with ChangeNotifier {
     return sb.toString();
   }
 
-  String scannerText() {
+  String scannerText({ScannerMode? mode}) {
     StringBuffer sb = StringBuffer();
-    sb.writeln("Scanner: ");
+    sb.writeln("Scanner mode: ${scannerMode.name}");
     Ship? ship = playerShip; if (ship == null) {
       sb.writeln("-");
-    } else { //TODO: sort by distance
-      for (GridCell cell in ship.loc.level.map.cells.values) {
+    } else {
+      final cells = ship.loc.level.map.cells.values
+          .where((c) => c.scannable(ship.loc.level.map, mode ?? scannerMode))
+          .sorted((c1,c2) => c1.coord.distance(ship.loc.cell.coord).compareTo(c2.coord.distance(ship.loc.cell.coord)));
+      for (GridCell cell in cells) {
         if (!cell.empty(ship.loc.level.map)) {
-          sb.writeln(cell);
+          sb.writeln(cell.toScannerString(ship.loc.level.map));
         }
       }
     }
     return sb.toString();
+  }
+
+  void toggleScannerMode({bool forwards = true}) {
+    if (forwards) {
+      if (scannerMode.index < ScannerMode.values.length - 1) {
+        scannerMode = ScannerMode.values.elementAt(scannerMode.index + 1);
+      } else {
+        scannerMode = ScannerMode.values.elementAt(0);
+      }
+    } else {
+      if (scannerMode.index > 0) {
+        scannerMode = ScannerMode.values.elementAt(scannerMode.index - 1);
+      } else {
+        scannerMode = ScannerMode.values.elementAt(ScannerMode.values.length - 1);
+      }
+    }
+    notifyListeners();
   }
 
   void hyperSpace(String letter) {
