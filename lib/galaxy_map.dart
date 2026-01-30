@@ -71,7 +71,7 @@ class GalaxyMapState extends State<GalaxyMap> {
           child: ForceDirectedGraphWidget(
             controller: _controller,
             nodesBuilder: (context, data) { //print("Building: ${data.name}");
-              return  InkWell(onTap: (fm.gameOver) ? null : () => fm.goLink(data),
+              return  InkWell(onTap: (fm.gameOver) ? null : () => fm.controller.goLink(data),
                   child: fugueOptions.getBool(FugueOption.fancyGraph) ? fancyNode(data) : boxSystem(data)
               ); //check if currently on a planet;
             },

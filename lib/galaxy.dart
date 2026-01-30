@@ -2,7 +2,12 @@ import 'dart:math';
 import 'package:space_fugue/descriptors.dart';
 import 'package:space_fugue/name_generator.dart';
 import 'package:space_fugue/planet.dart';
+import 'package:space_fugue/rng.dart';
 import 'package:space_fugue/system.dart';
+
+enum GalaxyLevel {
+  hyperspace,sector,impulse
+}
 
 class Galaxy {
   static const int density = 25;
@@ -14,13 +19,14 @@ class Galaxy {
   List<System> systems = [];
   NameGenerator nameGenerator;
   Planet homeWorld = Planet("Xaxle", 100, 100, DistrictLvl.heavy, DistrictLvl.heavy, DistrictLvl.heavy, PlanetAge.established, EnvType.earthlike, Goods.soylentPuce);
-  late System homeSystem = System("Mentos", StellarClass.K, 100, 100, [homeWorld], connected: true);
+  late System homeSystem;
 
   Galaxy(this.name,{int? seed}) : rnd = seed != null ?  Random(seed) : Random(), nameGenerator = NameGenerator(seed ?? 1) {
+    homeSystem = System("Mentos", StellarClass.K, 100, 100, [homeWorld], rnd, connected: true);
     systems.add(homeSystem);
     createMap();
     for (System system in systems) {
-      system.updateLevels(this);
+      system.updateLevels(rnd);
     }
     getRandomLinkableSystem(homeSystem)?.starOne = true;
     getRandomLinkableSystem(homeSystem)?.blackHole = true;
@@ -28,14 +34,14 @@ class Galaxy {
 
   void createMap() {
     while (systems.length < maxSystems) {
-      int n = biasedRndInt(mean: avgPlanets, min: 0, max: maxPlanets);
+      int n = Rng.biasedRndInt(rnd,mean: avgPlanets, min: 0, max: maxPlanets);
       String name;
       do { name = nameGenerator.generateSystemName(); }
       while (systems.where((sys) => sys.name == name).isNotEmpty);
       int fedLvl = rnd.nextInt(100);
       int techLvl = rnd.nextInt(100);
       System system = System(name,getRndStellarClass(),fedLvl,techLvl,
-          generatePlanets(n,fedLvl, techLvl),traffic: getRndTrafficLvl());
+          generatePlanets(n,fedLvl, techLvl),rnd,traffic: getRndTrafficLvl());
       systems.add(system);
     }
     for (System system in systems) {
@@ -47,6 +53,8 @@ class Galaxy {
       }
     }
   }
+
+
 
   int discoveredSystems() => systems.where((s) => s.visited).length;
 
@@ -92,8 +100,8 @@ class Galaxy {
 
   Planet createPlanet(int sysFed, int sysTech) {
     return Planet(nameGenerator.generatePlanetName(),
-        biasedRndInt(mean: sysFed, min: 0, max: 100),
-        biasedRndInt(mean: sysTech, min: 0, max: 100),
+        Rng.biasedRndInt(rnd,mean: sysFed, min: 0, max: 100),
+        Rng.biasedRndInt(rnd,mean: sysTech, min: 0, max: 100),
         getRndDistrictLvl(),getRndDistrictLvl(),getRndDistrictLvl(),
         PlanetAge.values.elementAt(rnd.nextInt(PlanetAge.values.length)),
         EnvType.values.elementAt(rnd.nextInt(EnvType.values.length)),
@@ -108,41 +116,7 @@ class Galaxy {
     return planList;
   }
 
-  int biasedRndInt({
-    required int mean,
-    required int min,
-    required int max,
-  }) {
-    final weights = <int, double>{};
 
-    // Create inverse weights based on distance from mean
-    double totalWeight = 0;
-    for (int i = min; i <= max; i++) {
-      double weight = 1 / (1 + (i - mean).abs()); // Inverse to distance
-      weights[i] = weight;
-      totalWeight += weight;
-    }
-
-    // Roll based on the weights
-    double roll = rnd.nextDouble() * totalWeight;
-    double cumulative = 0;
-    for (final entry in weights.entries) {
-      cumulative += entry.value;
-      if (roll <= cumulative) return entry.key;
-    }
-
-    return mean; // Fallback
-  }
-
-  void rndTest() {
-    Map<int,int> intMap = {};
-    for (int i=0;i<100;i++) {
-      int n = biasedRndInt(mean: 1, min: 0, max: 5);
-      intMap.update(n, (v) => v + 1,  ifAbsent: () => 1);
-      print("Rnd: $n");
-    }
-    print("IntMap: $intMap");
-  }
 }
 
 

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:space_fugue/fugue_model.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'ascii_view.dart';
 import 'galaxy.dart';
 import 'galaxy_view.dart';
 import 'options.dart';
@@ -96,7 +97,8 @@ class _FugueHomeState extends State<FugueHome> {
         listenable: fugueModel!,
         builder: (BuildContext context, Widget? child) => Column(children: [
           if (fugueModel!.gameOver) gameOver(),
-          Expanded(child: GalaxyView(fugueModel!,key: ValueKey(fugueModel))),
+          //Expanded(child: GalaxyView(fugueModel!,key: ValueKey(fugueModel))),
+          Expanded(child: AsciiView(fugueModel!,key: ValueKey(fugueModel))),
         ]),
       )),
     ];
@@ -162,7 +164,7 @@ class _FugueHomeState extends State<FugueHome> {
         Column(children: [
           Text("You were ${fugueModel?.result}",
               style: const TextStyle(color: Colors.white)), //const Text("*** SCORE ***"),
-          Text("Turns (1 pt each): ${fugueModel?.turn}",
+          Text("Turns (1 pt each): ${fugueModel?.auTick}",
               style: const TextStyle(color: Colors.green)),
           Text("Discovered ${fugueModel?.galaxy.discoveredSystems()} systems (2 pts each)",
               style: const TextStyle(color: Colors.blue)),

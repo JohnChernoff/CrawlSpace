@@ -4,18 +4,27 @@ import 'package:faker_dart/faker_dart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_force_directed_graph/flutter_force_directed_graph.dart';
 import 'package:space_fugue/descriptors.dart';
+import 'package:space_fugue/fugue_controller.dart';
 import 'package:space_fugue/galaxy.dart';
+import 'package:space_fugue/impulse.dart';
 import 'package:space_fugue/main.dart';
+import 'package:space_fugue/pilot.dart';
 import 'package:space_fugue/planet.dart';
 import 'package:space_fugue/player.dart';
+import 'package:space_fugue/rng.dart';
 import 'package:space_fugue/ship.dart';
 import 'package:space_fugue/system.dart';
+import 'actions.dart';
 import 'agent.dart';
+import 'coord_3d.dart';
 import 'galaxy_graph.dart';
+import 'grid.dart';
+import 'location.dart';
 import 'message_worker.dart';
 import 'options.dart';
 
 enum MusicalMood {intro,danger,planet,space}
+enum InputMode {main,inventory,hyperspace,planet,repair,techShop,broadcast,dnaShop,tavern}
 const blownUp = -1;
 
 class FugueModel with ChangeNotifier {
@@ -26,7 +35,7 @@ class FugueModel with ChangeNotifier {
   int numAgents = 3;
   List<Agent> agents = [];
   Random rnd = Random();
-  int turn = 0;
+  int auTick = 0;
   String? result;
   bool gameOver = false;
   bool victory = false;
@@ -34,9 +43,19 @@ class FugueModel with ChangeNotifier {
   final msgWorker = MessageQueueWorker();
   int costRepair = 1, costRecharge = 1, costBioHack = 50, costBroadcast = 2000;
   MusicalMood mood = MusicalMood.intro;
+  Map<Pilot,Ship> pilotMap = {};
+  Set<Pilot> pilots = {};
+  ImpulseLocation? get playerImpulseLoc => pilotImpulseLoc(player);
+  ImpulseLocation? pilotImpulseLoc(Pilot p) => pilotMap[p]?.loc as ImpulseLocation;
+  Ship? get playerShip => pilotMap[player];
+  Iterable<Pilot> get activePilots => pilots.where((p) => pilotMap[p] != null);
+  Iterable<Pilot> get availablePilots => activePilots.where((p) => p.auCooldown == 0);
+  late FugueController controller;
+  InputMode inputMode = InputMode.main;
+  Map<String,System> currentLinkMap = {};
 
   FugueModel(this.galaxy,String playerName) {
-    player = Player(playerName,galaxy.homeSystem);
+    controller = FugueController(this);
     graph = ForceDirectedGraph<System>(config: const GraphConfig(
       scaling: 0.05,
       repulsion: 180, //92,
@@ -61,10 +80,23 @@ class FugueModel with ChangeNotifier {
         maxPath = path; farthestSystem = sys;
       }
     } //print("Max Path: $maxPath");
-    player.system = farthestSystem;
+
+    player = Player(playerName,farthestSystem);
     player.system.visited = true;
     for (int i=0;i<numAgents;i++) {
       agents.add(Agent("Agent ${faker.name.lastName()}", galaxy.homeSystem, 25));
+    }
+    final playCell = player.system.map.rndCell(rnd);
+    Ship playShip = Ship("HMS Sebastian",player,loc: SystemLocation(player.system, playCell));
+    pilotMap[player] = playShip;
+    for (System sys in galaxy.systems) {
+      for (int i=0;i<rnd.nextInt(3);i++) {
+        Pilot pilot = Pilot(faker.name.fullName());
+        final cell = sys.map.rndCell(rnd);
+        Ship ship = Ship("${Rng.rndColorName(rnd)}${faker.animal.snake()}",pilot, loc: SystemLocation(sys, cell));
+        pilotMap[pilot] = ship;
+        pilots.add(pilot);
+      }
     }
     update(); //galaxy.rndTest();
   }
@@ -78,20 +110,129 @@ class FugueModel with ChangeNotifier {
     }
   }
 
-  void playAction(ActionType actionType, { mod = 1.0, int? subTurns }) {
+  void hyperSpaceMenu() {
+    Ship? ship = playerShip; if (ship == null) {
+      addMsg("No ship!"); return;
+    }
+    final cell = ship.loc.cell; if (cell is! SectorCell) {
+      addMsg("Wrong layer!"); return;
+    }
+    final star = cell.starClass; if (star == null) {
+      addMsg("No star!"); return;
+    }
+    final system = ship.loc.level; if (system is! System) {
+      addMsg("No system?!"); return;
+    }
+    StringBuffer sb = StringBuffer();
+    sb.writeln("Hyperspace Menu");
+    currentLinkMap.clear();
+    for (int i=0; i<system.links.length; i++) {
+      final link = system.links.elementAt(i);
+      String letter = String.fromCharCode(97 + i); // 97 is ASCII for 'a'
+      currentLinkMap[letter] = link;
+      sb.write("$letter: $link");
+    }
+    sb.writeln("x: cancel");
+    addMsg(sb.toString());
+    inputMode = InputMode.hyperspace;
+    pilotAction(player, ActionType.sector);
+  }
+
+  String statusText() {
+    StringBuffer sb = StringBuffer();
+    sb.writeln("Status: ");
+    Ship? ship = playerShip; if (ship == null) {
+      sb.writeln("No ship!");
+    } else {
+      sb.writeln(ship.name);
+      sb.writeln(ship.loc.cell);
+    }
+    return sb.toString();
+  }
+
+  String scannerText() {
+    StringBuffer sb = StringBuffer();
+    sb.writeln("Scanner: ");
+    Ship? ship = playerShip; if (ship == null) {
+      sb.writeln("-");
+    } else { //TODO: sort by distance
+      for (GridCell cell in ship.loc.level.map.cells.values) {
+        if (!cell.empty(ship.loc.level.map)) {
+          sb.writeln(cell);
+        }
+      }
+    }
+    return sb.toString();
+  }
+
+  void hyperSpace(String letter) {
+    if (currentLinkMap.containsKey(letter)) {
+      inputMode = InputMode.main;
+      newSystem(player, currentLinkMap[letter]!);
+    }
+  }
+
+  void cancelToMain() {
+    inputMode = InputMode.main;
+    notifyListeners();
+  }
+
+  void visitPlanet() {
+    Ship? ship = playerShip; if (ship == null) {
+      addMsg("No ship!"); return;
+    }
+    final cell = ship.loc.cell; if (cell is! SectorCell) {
+      addMsg("Wrong layer!"); return;
+    }
+    final planet = cell.planet; if (planet == null) {
+      addMsg("No planet!"); return;
+    }
+    inputMode = InputMode.planet;
+    StringBuffer sb = StringBuffer();
+    sb.writeln(planet.description);
+    if (planet.resLvl.atOrAbove(DistrictLvl.light)) {
+      sb.writeln("(s)cout the system");
+    }
+    if (planet.resLvl.atOrAbove(DistrictLvl.medium)) {
+      sb.writeln("(h)ack the network for clues about Star One");
+    }
+    if (planet.resLvl.atOrAbove(DistrictLvl.heavy)) {
+      sb.writeln("reveal (a)gent locations");
+    }
+    if (planet.commLvl.atOrAbove(DistrictLvl.light)) {
+      sb.writeln("(v)isit the tavern");
+    }
+    if (planet.commLvl.atOrAbove(DistrictLvl.medium)) {
+      sb.writeln("(t)rade mission");
+    }
+    if (planet.commLvl.atOrAbove(DistrictLvl.heavy)) {
+      sb.writeln("(b)roadcast information about Star One");
+    }
+    if (planet.dustLvl.atOrAbove(DistrictLvl.light)) {
+      sb.writeln("(r)epair ship");
+    }
+    if (planet.dustLvl.atOrAbove(DistrictLvl.medium)) {
+      sb.writeln("(u)pgrade ship");
+    }
+    if (planet.dustLvl.atOrAbove(DistrictLvl.heavy)) {
+      sb.writeln("(g)enetic engineering");
+    }
+    sb.writeln("(l)aunch");
+    addMsg(sb.toString());
+    pilotAction(player,ActionType.planetLand);
+  }
+
+  void pilotAction(Pilot? pilot, ActionType actionType, { mod = 1.0, int? actionAuts }) {
+    if (pilot == null) return;
     if (actionType.risk > 0 && rnd.nextInt(255) < player.fedLevel()) { //addMsg("You have a bad feeling about this...");
       if (rnd.nextInt(128) < (max(actionType.risk - (actionType.dna ? player.dnaScram : 0),1))) {
         heat(actionType.heat);
       }
     }
-    int t = player.action(actionType,modifier: mod, subTurns: subTurns);
-    if (t == 0) {
-      update();
-    } else {
-      for (int i=0; i<t; i++) {
-        endTurn(); //updates
-      }
-    }
+    pilot.auCooldown += ((actionAuts ?? actionType.baseAuts) * mod).round();
+    pilot.lastAct = actionType;
+    update();
+    if (pilot == player) runUntilNextPlayerTurn();
   }
 
   AgentSystemReport agentAt(System system, {bool playerPerspective = true}) {
@@ -111,88 +252,30 @@ class FugueModel with ChangeNotifier {
     return report;
   }
 
-  void moveAgent(Agent agent) {
-    for (int t = 0; t < agent.movesPerTurn(); t++) {
-      agent.investigate(agent.pickLink(this));
-      if (agent.system == player.system) {
-        if (player.planet == null) {
-          agentBattle(agent);
-        } else {
-          endGame("${agent.name} found ${player.name}!");
-          return;
-        }
-      }
-    }
-  }
-
-  void agentBattle(Agent agent) { //TODO: use warps?
-    agent.lastKnown = agent.system;
-    int agentHP = 100;
-    bool escaped = false;
-    while (!escaped) {
-      addMsg("You have been detected by ${agent.name} and must escape the sector...");
-      if ((rnd.nextInt(player.ship.speed.max()) + player.ship.speed.min())  < player.ship.speed.value) {
-        addMsg("You activate the afterburners and blast away in the nick of time!");
-        escaped = true;
-      } else {
-        int dam = rnd.nextInt(player.ship.weapons.value) * 2;
-        addMsg("You blast ${agent.name} for $dam damage",delay: 500);
-        agentHP -= dam;
-        if (agentHP <= 0) {
-          addMsg("You've disabled their ship!");
-          escaped = true;
-        }
-        else {
-          dam = rnd.nextInt(player.ship.hull.max());
-          addMsg("You've been blasted for $dam damage");
-          if (player.ship.takeDamage(dam)) {
-            endGame("Blown up by ${agent.name}");
-            return;
-          }
-        }
-      }
-    }
-  }
-
-  void endTurn() {
-    for (Agent a in agents) {
-      moveAgent(a);
-    }
-    turn++;
-    update();
-  }
-
   void outOfEnergy() {
     addMsg("Insufficient energy!");
   }
 
-  void goLink(System system) {
-    newTrack(MusicalMood.space);
-    if (!player.system.links.contains(system)) {
-      addMsg("You can't get there yet.");
-    } else {
-      if (player.planet != null) { //addMsg("You must first take off.");
-        launch();
-      }
-      if (player.newSystem(system)) {
-        if (system.starOne) {
-          player.starOne = true;
-          addMsg("Star One located!  Proceed to ${galaxy.systems.first.name}.");
+  bool newSystem(Pilot pilot, System system) {
+    if (pilotMap.containsKey(pilot)) {
+      Ship ship = pilotMap[pilot]!;
+      final sysLoc = ship.loc;
+      if (sysLoc is SystemLocation) {
+        if (sysLoc.cell.starClass != null) {
+          sysLoc.level.map.removeShip(ship);
+          final stars = system.map.cells.values.where((c) => c is SectorCell && c.starClass != null);
+          ship.loc = SystemLocation(system, stars.first);
+          pilotAction(pilot,ActionType.sector);
+          return true;
         }
-        system.visited = true; //TODO: check for agents?
-        playAction(ActionType.sector);
-        if (!gameOver && fugueOptions.getBool(FugueOption.autoScoop)) {
-          energyScoop();
-        }
-      } else {
-        outOfEnergy();
       }
     }
+    return false;
   }
 
   void goPlan(Planet? planet) { //print("Visiting: $planet");
     newTrack(MusicalMood.planet);
-    OrbitResult result = player.newOrbit(planet);
+    OrbitResult result = OrbitResult.newOrbit; //player.newOrbit(planet);
     if (result == OrbitResult.insufficientEnergy) {
       outOfEnergy();
     } else if (result == OrbitResult.newOrbit) {
@@ -200,7 +283,7 @@ class FugueModel with ChangeNotifier {
         endGame("You complete your mission!",home: true);
       } else {
         if (planet != null) {
-          if (player.techLevel() > 50 ? !pirateCheck(numPirates: 1) : !pirateCheck()) return;
+          //if (player.techLevel() > 50 ? !pirateCheck(numPirates: 1) : !pirateCheck()) return;
           addMsg("Orbiting ${planet.name}");
           addMsg(planet.description);
           if (player.tradeTarget?.planet == planet) {
@@ -209,7 +292,7 @@ class FugueModel with ChangeNotifier {
             player.tradeTarget = null;
           }
         }
-        playAction(ActionType.planetOrbit);
+        pilotAction(player,ActionType.planetOrbit);
       }
     } else {
       addMsg("Maintaining orbit around ${planet?.name ?? 'nothing'}",updateAfter: true);
@@ -222,7 +305,7 @@ class FugueModel with ChangeNotifier {
         addMsg("You arrive on ${galaxy.homeWorld.name} and are immediately taken into custody and shortly thereafter executed for treason. "
             "Perhaps you should have broadcasted your information to the galaxy first.");
       }
-      else if (galaxy.biasedRndInt(mean: 1, min: 0, max: 5) <= player.broadcasts) {
+      else if (Rng.biasedRndInt(rnd,mean: 1, min: 0, max: 5) <= player.broadcasts) {
         addMsg("You arrive on ${galaxy.homeWorld.name} admist a media firestorm and are taken into custody, but before your case can be "
             "heard the Federation Government collapses and you are reappointed and promoted to the rank of Intergalactic Commodore ${player.name}. "
             "Congratulations!");
@@ -242,11 +325,13 @@ class FugueModel with ChangeNotifier {
   void launch() {
     player.planet = null; //still orbiting planet
     player.landed = false;
-    playAction(ActionType.planetLaunch);
+    inputMode = InputMode.main;
+    addMsg("Launching...");
+    pilotAction(player,ActionType.planetLaunch);
   }
 
   String starDate() {
-    return "$turn.${player.subTurnCounter}";
+    return "$auTick.";
   }
 
   System starOne() {
@@ -286,7 +371,7 @@ class FugueModel with ChangeNotifier {
     if (!player.landed) {
       addMsg("Landing on ${player.planet?.name}...");
       player.landed = true;
-      playAction(ActionType.planetLand);
+      pilotAction(player,ActionType.planetLand);
     }
   }
 
@@ -300,21 +385,21 @@ class FugueModel with ChangeNotifier {
         addMsg("${agent.name} is ${jumps(path)} jumps away (tracking for ${agent.tracked} jumps)");
       }
     }
-    playAction(ActionType.planet);
+    pilotAction(player,ActionType.planet);
   }
 
   void hack() { //find starOne
     List<System>? path = galaxyGraph.shortestPath(player.system, starOne());
     addMsg("Star One is ${jumps(path)} jumps away");
     addMsg("Next step: ${nextSystemInPath(path)?.name}");
-    playAction(ActionType.planet,mod: 1.5);
+    pilotAction(player,ActionType.planet,mod: 1.5);
   }
 
   void scout() {
     int depth = (player.techLevel() / 16).ceil();
     addMsg("Scouting nearby systems (depth: $depth)...");
     explore(player.system, depth);
-    playAction(ActionType.planet);
+    pilotAction(player,ActionType.planet);
   }
 
   void explore(System system,int depth) { //addMsg("Exploring: ${system.name} , depth: $depth");
@@ -326,12 +411,14 @@ class FugueModel with ChangeNotifier {
   }
 
   void tradeMission() {
-    if (player.tradeTarget?.source == player.planet) {
+    if (playerShip == null) {
+      addMsg("You're not in a ship!");
+    } else if (player.tradeTarget?.source == player.planet) {
       addMsg("You already have a mission from this planet.");
     } else {
       List<System> path = [];
       int steps = 3;
-      int r = (player.techLevel() / 10).ceil() * player.ship.cargo.value;
+      int r = (player.techLevel() / 10).ceil() * playerShip!.cargo.value;
       int reward = (r/2).floor() + rnd.nextInt(r);
       Planet? planet; int tries = 0;
       while (planet == null && tries++ < 100) {
@@ -345,7 +432,7 @@ class FugueModel with ChangeNotifier {
       } else {
         addMsg("Failed to find planet in route: ${pathList(path)}");
       }
-      playAction(ActionType.planet, mod: 1.25);
+      pilotAction(player,ActionType.planet, mod: 1.25);
     }
   }
 
@@ -365,10 +452,10 @@ class FugueModel with ChangeNotifier {
     }
   }
 
-  void modShip(ShipSystem shipSys) {
+  void modShip(ShipSystem1 shipSys) {
       int change = shipSys.modify(1);
       if (change > 0) {
-        int cost = shipSys.type.cost * change;
+        int cost = shipSys.type.baseCost * change;
         if (player.credits < cost) {
           addMsg("You can't afford this.");
           shipSys.modify(-change);
@@ -377,23 +464,31 @@ class FugueModel with ChangeNotifier {
           addMsg("Modified for $cost credits.");
         }
       }
-      playAction(ActionType.planet, mod: .1);
+      pilotAction(player,ActionType.planet, mod: .1);
   }
 
   void repair({all=false,int amount = 1,bool update = true}) {
-    int n = (all || amount > player.ship.damage ? player.ship.damage : amount);
+    Ship? ship = playerShip;
+    if (ship == null) {
+      addMsg("You're not in a ship."); return;
+    }
+    int n = (all || amount > ship.damage ? ship.damage : amount);
     int debt = n * costRepair;
     if (player.credits < debt) {
       n = (player.credits / costRepair).floor(); debt = n * costRepair;
       addMsg("You can't afford that much; repairing as much as possible...");
     }
-    player.ship.repair(n);
+    ship.repair(n);
     player.credits -= debt;
     addMsg("$n damage repaired ($debt credits).",updateAfter: update);
   }
 
   void recharge({all=false,int amount = 1,bool free = false, bool update = true}) {
-    int spentCharge = player.ship.battery.value - player.ship.energy;
+    Ship? ship = playerShip;
+    if (ship == null) {
+      addMsg("You're not in a ship."); return;
+    }
+    int spentCharge = ship.battery.value - ship.energy;
     int n = (all || amount > spentCharge ? spentCharge : amount);
     int debt = 0;
     if (!free) {
@@ -404,59 +499,25 @@ class FugueModel with ChangeNotifier {
       }
       player.credits -= debt;
     }
-    player.ship.recharge(n);
+    ship.recharge(n);
     addMsg("$n energy recharged ${debt > 0 ? '($debt credits)' : ''}.",updateAfter: update);
   }
 
   energyScoop() {
+    Ship? ship = playerShip;
+    if (ship == null) {
+      addMsg("You're not in a ship."); return;
+    }
     if (player.orbiting != null) {
       goPlan(null); return;
     }
-    if (player.lastAct == ActionType.energyScoop && !pirateCheck(numPirates: 2)) return;
-    int amount = ((player.ship.energyConvertor.value/(galaxy.biasedRndInt(mean: 50, min: 25, max: 80))) * player.system.starClass.power).floor();
-    addMsg("Scooping class ${player.system.starClass.name} star... gained ${player.ship.recharge(amount)} energy");
-    playAction(ActionType.energyScoop);
+    //if (player.lastAct == ActionType.energyScoop && !pirateCheck(numPirates: 2)) return;
+    int amount = ((ship.energyConvertor.value/(Rng.biasedRndInt(rnd,mean: 50, min: 25, max: 80))) * player.system.starClass.power).floor();
+    addMsg("Scooping class ${player.system.starClass.name} star... gained ${ship.recharge(amount)} energy");
+    pilotAction(player,ActionType.energyScoop);
   }
 
-  void bioHack({int amount = 1}) {
-    if (player.dnaScram < Player.maxDna) {
-      if (player.credits >= costBioHack) {
-        player.credits -= costBioHack;
-        player.dnaScram++;
-        addMsg("Dna scrambled (mutation: ${player.dnaScram})");
-        playAction(ActionType.planet,mod: 2);
-      } else {
-        addMsg("You can't afford this (cost: $costBioHack credits).");
-      }
-    } else {
-      addMsg("Your system cannot handle further modification.");
-    }
-  }
 
-  void shoplift() {
-    if (player.planet == null) return;
-    bool success = rnd.nextInt(300) < (player.thievery + 200);
-    if (success) {
-      int n = ((player.techLevel()/3) + (player.planet!.commLvl.index * 12)).floor();
-      int c = rnd.nextInt(n);
-      player.credits += c;
-      addMsg("You stole $c credits.");
-      playAction(ActionType.planet);
-    }
-    else {
-      heat((2 * (player.fedLevel()/12)).ceil());
-      int penalty = rnd.nextInt(67) + 33;
-      int t = rnd.nextInt(3) + 2;
-      addMsg("You've been caught!  Penalty: $penalty credits and $t turns in jail.");
-      player.credits -= penalty;
-      if (player.credits < 0) {
-        int t2 = (player.credits.abs() / 20).ceil();
-        addMsg("You can't afford the fine! Penalty: $t2 extra turns in jail.");
-        player.credits = 0;
-      }
-      playAction(ActionType.planet,subTurns: t * 100);
-    }
-  }
 
   void heat(int v, {System? sighted}) {
     for (Agent agent in agents) {
@@ -502,121 +563,138 @@ class FugueModel with ChangeNotifier {
     return (agents.fold(0, (pv,e) => pv + e.clueLvl) / agents.length).floor();
   }
 
-  bool pirateCheck({int? numPirates, int meanPirates = 2, minPirates = 1, maxPirates = 3}) {
-    if (fedCheck(3,invert: true)) {
-      if (pirateAttack(numPirates ??
-          galaxy.biasedRndInt(mean: meanPirates, min: minPirates, max: maxPirates))) {
-        endGame("Blown up by pirates");
-        return false;
-      }
-    }
-    return true;
-  }
-
-  bool pirateAttack(int n, {int delay = 500})  {
-    newTrack(MusicalMood.danger);
-    if (fugueOptions.getBool(FugueOption.fastCombat)) delay = 50;
-    int shields = player.ship.shields.value;
-    for (int i = 0; i < n; i++) {
-      player.piratesEncountered++;
-      Ship pirateShip = Ship("The Dread Pirate ${faker.name.lastName()}",
-          weapons: galaxy.biasedRndInt(mean: 8, min: 1, max: 24),
-          shields: galaxy.biasedRndInt(mean: 16, min: 8, max: 36),
-          hull: galaxy.biasedRndInt(mean: 24, min: 12, max: 48));
-      addMsg("${pirateShip.name} ambushes you!");
-      shields = battle(pirateShip, delay: delay);
-      if (shields == blownUp) return true;
-      player.piratesVanquished++;
-    }
-    return false;
-  }
-
-  void piracy() {
-    int fedLevel = player.planet?.fedLvl ?? player.system.fedLvl;
-    if (Random().nextInt(100) > fedLevel) {
-      int c = galaxy.biasedRndInt(mean: 50, min: 1, max: 100);
-      addMsg("You successfully shake down a poor innocent space commuter for $c credits and some fuel...");
-      player.credits += c;
-      recharge(amount: galaxy.biasedRndInt(mean: 50, min: 1, max: 100),free: true,update: false);
-      heat(10);
-      if (!pirateCheck()) return;
-    } else {
-      newTrack(MusicalMood.danger);
-      addMsg("A Federal Agent intervenes!");
-      if (battle(Ship("Federal Agent ${faker.name.lastName()}",weapons: 80, hull: 50, shields: 25)) == blownUp) {
-        endGame("Blown up by Federal Agents"); return;
-      } else {
-        heat(20);
-      }
-    }
-    playAction(ActionType.piracy);
-  }
-
-  int battle(Ship opponent, {int? currentShields, int delay = 500}) {
-    int shields = currentShields ??  player.ship.shields.value;
-    while (opponent.damage < opponent.hull.value) {
-      if (Random().nextInt(100) < opponent.weaponType.accuracy) {
-        int dam = opponent.fireWeapon(galaxy);
-        if (shields > 0) {
-          shields -= dam;
-          addMsg("Your shields absorb $dam damage (remaining strength: $shields)", delay: delay, color: Colors.purple);
-        } else {
-          if (player.ship.takeDamage(dam)) {
-            addMsg("${opponent.name} blows you up with $dam damage (${player.ship.damageReport()})", delay: delay, color: Colors.red);
-            return blownUp;
-          } else {
-            addMsg("${opponent.name} does $dam damage (${player.ship.damageReport()})", delay: delay, color: Colors.pink);
-          }
-        }
-      } else {
-        addMsg("${opponent.name} misses!");
-      }
-      if (Random().nextInt(100) < player.ship.weaponType.accuracy) {
-        int dam = player.ship.fireWeapon(galaxy);
-        if (opponent.shields.value > 0) {
-          opponent.shields.value -= dam;
-          addMsg("${opponent.name}'s shields absorb $dam damage (remaining strength: ${opponent.shields.value})", delay: delay, color: Colors.green);
-        } else {
-          if (opponent.takeDamage(dam)) {
-            addMsg("You blow up ${opponent.name} ($dam damage)!", delay: delay, color: Colors.yellowAccent);
-          } else {
-            addMsg("You do $dam damage (${opponent.damageReport()})", delay: delay, color: Colors.greenAccent);
-          }
-        }
-      } else {
-        addMsg("You miss!");
-      }
-    }
-    return max(0,shields);
-  }
-
-  void warp() {
-    if (player.ship.energy < player.ship.warpEngine) {
-      player.ship.energy = player.ship.warpEngine;
-      if (player.ship.takeDamage(rnd.nextInt(player.ship.warpEngine))) {
-        endGame("Blown up trying to warp"); return;
-      }
-    }
-    if (player.ship.warps.value > 0) {
-      System system = galaxy.getRandomLinkableSystem(player.system, ignoreTraffic: true) ?? galaxy.getRandomSystem(player.system);
-      if (player.newSystem(system,warp: true)) {
-        player.ship.warps.value--;
-        addMsg("*** EMERGENCY WARP ACTIVATED ***");
+  void warp(Ship ship) {
+    System system = galaxy.getRandomLinkableSystem(player.system, ignoreTraffic: true) ?? galaxy.getRandomSystem(player.system);
+    if (newSystem(player,system)) {
+      ship.warps.value--;
+      addMsg("*** EMERGENCY WARP ACTIVATED ***");
+      if (ship.pilot == player) {
         for (Agent agent in agents) {
           agent.clueLvl = 25;
         }
-        playAction(ActionType.warp);
       }
-    } else {
-      addMsg("Out of emergency warps.");
+    }
+    pilotAction(ship.pilot,ActionType.warp);
+  }
+
+  void createImpulse({int gridSize = 8, int minDist = 4}) {
+    Ship? playShip = playerShip;
+    if (playShip == null) {
+      addMsg("You're not in a ship."); return;
+    }
+    int size = gridSize;
+    ImpulseLevel impLevel;
+    ShipLocation l = playShip.loc;
+    if (l is SystemLocation) {
+      final rnd = Random(l.cell.impulseSeed);
+      if (l.level.impMapCache.containsKey(l.cell)) {
+        impLevel = l.level.impMapCache[l.cell]!;
+      }
+      else {
+        Map<Coord3D,ImpulseCell> cells = {};
+        for (int x=0;x<size;x++) {
+          for (int y=0;y<size;y++) {
+            for (int z=0;z<size;z++) {
+              final c = Coord3D(x, y, z);
+              cells.putIfAbsent(c, () => ImpulseCell(c,
+                  wakeTurb: c.isEdge(size) ? 1 : 0
+              ));
+            }
+          }
+        }
+        impLevel = ImpulseLevel(ImpulseMap(size,cells),l.cell);
+        l.level.impMapCache.putIfAbsent(l.cell, () => impLevel);
+      }
+
+      final ships = l.level.map.shipMap[l.cell]?.toList();
+      if (ships != null && ships.isNotEmpty) {
+        ships.remove(playShip);
+        final playerCoord = Coord3D.random(size, rnd);
+        List<GridCell> safeDistCoords; do {
+          safeDistCoords = impLevel.map.cells.values.where((c) => c.coord.distance(playerCoord) >= minDist).toList();
+          minDist--;
+        } while (safeDistCoords.length < ships.length);
+        safeDistCoords.shuffle(rnd);
+        for (int i = 0; i < ships.length; i++) {
+          enterImpulse(impLevel,ships.elementAt(i));
+        }
+      }
     }
   }
 
-  int score() => turn + (player.starOne ? 500 : 0) + (galaxy.discoveredSystems() * 2) + (player.piratesVanquished * 3) + (victory ? 1000 : 0);
+  void enterImpulse(ImpulseLevel impLvl, Ship? ship, {ImpulseCell? cell, safeDist = 4}) {
+    if (ship == null) return;
+    final sysLoc = ship.loc;
+    if (sysLoc is SystemLocation) {
+      GridCell targetCell = cell ?? impLvl.map.rndCell(rnd);
+      final pic = playerImpulseLoc;
+      if (ship.npc && pic != null && pic.systemLoc.cell == sysLoc.cell && targetCell.coord.distance(pic.cell.coord) < safeDist) {
+        List<GridCell> safeDistCells;
+        do {
+          safeDistCells = impLvl.map.cells.values.where((c) => c.coord.distance(pic.cell.coord) >= safeDist).toList();
+          safeDist--;
+        } while (safeDistCells.isEmpty);
+        safeDistCells.shuffle(rnd);
+        targetCell = safeDistCells.first;
+      }
+      sysLoc.level.map.addShip(ship, targetCell);
+      ship.loc = ImpulseLocation(sysLoc, impLvl, targetCell);
+    }
+  }
+
+  void exitImpulse(Ship? ship) {
+    if (ship == null) return;
+    final impLoc = ship.loc;
+    if (impLoc is ImpulseLocation) {
+      impLoc.level.map.removeShip(ship);
+      ship.loc = impLoc.systemLoc;
+    }
+  }
+
+  void vectorShip(Ship? ship, Coord3D v) {
+    if (ship == null) return;
+    moveShip(ship, ship.loc.cell.coord.add(v));
+  }
+
+  void moveShip(Ship? ship, Coord3D c) {
+    if (ship == null) return;
+    glog("Moving ${ship.name} => $c");
+    final l = ship.loc;
+    GridCell? destination = l.level.map.cells[c];
+    if (destination != null) {
+      final dist = l.cell.coord.distance(destination.coord);
+      l.level.map.removeShip(ship);
+      l.level.map.addShip(ship, destination);
+      if (l is SystemLocation) {
+        ship.loc = SystemLocation(l.level,destination);
+        //ship.pilot?.auCooldown += (ship.subLightEngine.baseAutPerUnitTraversal * dist).round();
+        pilotAction(ship.pilot, ActionType.movement);
+      } else if (l is ImpulseLocation) {
+        ship.loc = ImpulseLocation(l.systemLoc,l.level,destination);
+        pilotAction(ship.pilot, ActionType.movement,actionAuts: (ship.impEngine.baseAutPerUnitTraversal * dist).round());
+      }
+    }
+  }
+
+  int score() => auTick + (player.starOne ? 500 : 0) + (galaxy.discoveredSystems() * 2) + (player.piratesVanquished * 3) + (victory ? 1000 : 0);
 
   void addMsg(String txt, {int delay = 100, bool updateAfter = false, Color color = Colors.white}) {
     msgWorker.addMsg(Message(text: txt, timestamp: starDate(),color: color),delay: delay);
     if (updateAfter) update();
+  }
+
+  void runUntilNextPlayerTurn() {
+    do {
+      for (Pilot p in activePilots) {
+        p.tick();
+        if (p.ready && pilotMap[p]!.loc.level == playerShip?.loc.level) {
+          vectorShip(pilotMap[p]!,Rng.rndUnitVector(rnd));
+        }
+      }
+      auTick++;
+      player.tick();
+    } while (!player.ready);
+    update();
   }
 
   Future<void> update() async {
@@ -627,6 +705,10 @@ class FugueModel with ChangeNotifier {
         notifyListeners();
       });
     }
+  }
+
+  void glog(String msg) {
+    print(msg);
   }
 
   bool isPlayingMusic() => fuguePlayer.state == PlayerState.playing || fuguePlayer.state == PlayerState.completed;

@@ -5,6 +5,9 @@ import 'package:space_fugue/descriptors.dart';
 
 enum DistrictLvl { none("-"), light("+"), medium("++"), heavy("+++");
   const DistrictLvl(this.shortString);
+  bool atOrAbove(DistrictLvl lvl) {
+    return index >= lvl.index;
+  }
   final String shortString;
 }
 

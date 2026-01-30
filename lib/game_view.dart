@@ -48,7 +48,9 @@ class GameViewState extends State<GameView> {
         child: Center(child: Column(children: [
           switch(currMainMenu) {
             MainMenu.main => mainMenu(),
-            MainMenu.ship => shipScreen(widget.fugueModel.player.ship),
+            MainMenu.ship => widget.fugueModel.playerShip != null
+                ? shipScreen(widget.fugueModel.playerShip!)
+                : const Text("No Ship"),
           },
           spaceBlock(),
           widget.bigLog ? Expanded(child: log!) : SizedBox(height: 128, child: log!),
@@ -66,7 +68,8 @@ class GameViewState extends State<GameView> {
     return Color.fromRGBO(v, 128, 255 - v, 1);
   }
 
-  Color shipCol(Ship ship) {
+  Color shipCol(Ship? ship) {
+    if (ship == null) return Colors.black;
     double hi = ship.energy / ship.battery.value;
     int v = (hi * 255).ceil();
     return Color.fromRGBO(255-v, v, 92, 1);
@@ -75,6 +78,8 @@ class GameViewState extends State<GameView> {
   Widget mainMenu() {
     final fm = widget.fugueModel;
     final p = fm.player;
+    final ps = fm.playerShip;
+    final controller = fm.controller;
     return Column(children: [
         SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
         Text("Credits: ${p.credits}, Heat: ${fm.currentHeat()}",style: TextStyle(color: heatCol())),
@@ -82,18 +87,17 @@ class GameViewState extends State<GameView> {
         Text("Current System: ${p.system.shortString(showVisit: false)}",style: TextStyle(color: p.system.starClass.color)),
         if (p.planet != null) spaceBlock(vertical: false, w: 12),
         if (p.planet != null) Text("Current Planet: ${p.planet?.shortString() ?? '-'} ", style: TextStyle(color: p.planet?.color(fedTech: true))),
-        menuAction(() => setMainMenu(MainMenu.ship), "🚀 ${p.ship.name}, ⚡ ${p.ship.energy}, damage: ${p.ship.damage}/${p.ship.hull.value}",col: shipCol(p.ship)),
+        menuAction(() => setMainMenu(MainMenu.ship),
+            "🚀 ${ps?.name}, ⚡ ${ps?.energy}, damage: ${ps?.damage}/${ps?.hull.value}", col: shipCol(ps)),
         Row(mainAxisAlignment: MainAxisAlignment.end, children: [ //if (p.orbiting == null) const SizedBox(width: 8),
           menuAction(widget.fugueModel.energyScoop, p.orbiting == null ? "Scoop" : "System",bigButt: true), //if (p.orbiting == null)
           spaceBlock(vertical: false, w: 8 ),
-          menuAction(widget.fugueModel.piracy, "Piracy", bigButt: true),
-          spaceBlock(vertical: false, w: 8 ),
-          menuAction(widget.fugueModel.warp, "Warp", bigButt: true),
+          menuAction(controller.warp, "Warp", bigButt: true),
         ])
       ])),
       spaceBlock(),
       p.planet != null
-          ? planetMenu(p)
+          ? planetMenu(p,ps)
           : orbitMenu(p),
       p.planet != null ? const Divider() : spaceBlock(),
       p.planet != null
@@ -122,7 +126,7 @@ class GameViewState extends State<GameView> {
                 border: link.visited ? Border.all(color: link.starClass.color, width: 1) : null
               ),
               child: TextButton(
-                  onPressed: () => widget.fugueModel.goLink(link),
+                  onPressed: () => widget.fugueModel.controller.goLink(link),
                   child: linkTxt));
         }));
   }
@@ -158,12 +162,12 @@ class GameViewState extends State<GameView> {
         })));
   }
 
-  Widget planetMenu(Player player) {
+  Widget planetMenu(Player player, Ship? ship) {
     Planet? planet = player.planet;
-    if (planet != null) {
+    if (planet != null && ship != null) {
       return switch(currPlanMenu) {
         PlanetMenu.main => mainPlanetMenu(planet),
-        PlanetMenu.mod => shipModMenu(player.ship),
+        PlanetMenu.mod => shipModMenu(ship),
         PlanetMenu.repair => repairMenu(),
         PlanetMenu.shipyard => throw UnimplementedError(),
       };
@@ -180,12 +184,12 @@ class GameViewState extends State<GameView> {
   }
 
   Widget shipScreen(Ship ship) {
-    List<ShipSystem> shipSystems = ship.systems();
+    List<ShipSystem1> shipSystems = ship.systems();
     return Column(children: [
         SingleChildScrollView(scrollDirection: Axis.horizontal,
             child: Row(mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(shipSystems.length, (i) {
-          ShipSystem system = shipSystems.elementAt(i);
+          ShipSystem1 system = shipSystems.elementAt(i);
           return Container(
               decoration: BoxDecoration(
                 color: system.type.color,
@@ -205,11 +209,11 @@ class GameViewState extends State<GameView> {
   }
 
   Widget shipModMenu(Ship ship) {
-    List<ShipSystem> shipSystems = ship.systems();
+    List<ShipSystem1> shipSystems = ship.systems();
     return Column(children: [ SingleChildScrollView(scrollDirection: Axis.horizontal,
         child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,children:
       List.generate(shipSystems.length, (i) {
-        ShipSystem system = shipSystems.elementAt(i);
+        ShipSystem1 system = shipSystems.elementAt(i);
         return Container(
             decoration: BoxDecoration(
                 color: system.type.color,
@@ -218,7 +222,7 @@ class GameViewState extends State<GameView> {
             child: Column(
           children: [
             menuAction(() => widget.fugueModel.modShip(system),"${system.type.name}: ${system.value} / ${system.max()}"),
-            Text("(${system.type.cost} credits)",style: const TextStyle(color: Colors.black))
+            Text("(${system.type.baseCost} credits)",style: const TextStyle(color: Colors.black))
           ],
         ));
       })
@@ -242,6 +246,7 @@ class GameViewState extends State<GameView> {
 
   Widget mainPlanetMenu(Planet planet) {
     final fm = widget.fugueModel;
+    final controller = fm.controller;
     return SingleChildScrollView(scrollDirection: Axis.horizontal,
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
       if (planet.resLvl == DistrictLvl.heavy) menuAction(fm.spy, "Spy",plan:true),
@@ -250,8 +255,8 @@ class GameViewState extends State<GameView> {
       if (planet.commLvl == DistrictLvl.heavy) menuAction(fm.broadcast,"Broadcast (${fm.costBroadcast} credits)",plan:true),
       if (planet.commLvl.index >=  DistrictLvl.medium.index)
         menuAction(fm.tradeMission,"Trade Mission",plan:true),
-      if (planet.commLvl.index >= DistrictLvl.light.index) menuAction(fm.shoplift,"Shoplift",plan:true),
-      if (planet.dustLvl == DistrictLvl.heavy) menuAction(fm.bioHack, "Bio-Hacking (${fm.costBioHack} credits)",plan:true),
+      if (planet.commLvl.index >= DistrictLvl.light.index) menuAction(controller.shoplift,"Shoplift",plan:true),
+      if (planet.dustLvl == DistrictLvl.heavy) menuAction(controller.bioHack, "Bio-Hacking (${fm.costBioHack} credits)",plan:true),
       if (planet.dustLvl.index >=  DistrictLvl.medium.index)
         menuAction(() => setPlanetMenu(PlanetMenu.mod),"Ship Modification",plan:true),
       if (planet.dustLvl.index >= DistrictLvl.light.index)
