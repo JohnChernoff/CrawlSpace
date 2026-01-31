@@ -6,14 +6,13 @@ import 'fugue_model.dart';
 enum AgentSystemReport {none,lastKnown,current}
 
 class Agent extends Pilot {
-  System system;
   System? sighted;
   System? lastKnown;
   int clueLvl;
   int speed = 1;
   int tracked = 0;
 
-  Agent(super.name,this.system,this.clueLvl);
+  Agent(super.name,super.system,this.clueLvl);
 
   System pickLink(FugueModel game) {
     if (sighted != null) {

@@ -34,6 +34,9 @@ class LoiterIntent extends Intent {
     const LoiterIntent();
 }
 
+const downComboKey = LogicalKeyboardKey.shift;
+const upComboKey = LogicalKeyboardKey.keyZ;
+
 class MainInput extends StatelessWidget {
   final Widget child;
   final FugueModel fm;
@@ -57,48 +60,46 @@ class MainInput extends StatelessWidget {
         LogicalKeySet(LogicalKeyboardKey.home):
         const DirectionIntent(-1, -1, 0),
         LogicalKeySet(LogicalKeyboardKey.pageUp):
-        const DirectionIntent(1, 1, 0),
+        const DirectionIntent(1, -1, 0),
         LogicalKeySet(LogicalKeyboardKey.pageDown):
-        const DirectionIntent(-1, -1, 0),
+        const DirectionIntent(1, 1, 0),
 
-        LogicalKeySet(LogicalKeyboardKey.arrowUp,LogicalKeyboardKey.shift):
+        LogicalKeySet(LogicalKeyboardKey.arrowUp,downComboKey):
         const DirectionIntent(0, -1, -1),
-        LogicalKeySet(LogicalKeyboardKey.arrowDown,LogicalKeyboardKey.shift):
+        LogicalKeySet(LogicalKeyboardKey.arrowDown,downComboKey):
         const DirectionIntent(0, 1, -1),
-        LogicalKeySet(LogicalKeyboardKey.arrowLeft,LogicalKeyboardKey.shift):
+        LogicalKeySet(LogicalKeyboardKey.arrowLeft,downComboKey):
         const DirectionIntent(-1, 0, -1),
-        LogicalKeySet(LogicalKeyboardKey.arrowRight,LogicalKeyboardKey.shift):
+        LogicalKeySet(LogicalKeyboardKey.arrowRight,downComboKey):
         const DirectionIntent(1, 0, -1),
-        LogicalKeySet(LogicalKeyboardKey.end,LogicalKeyboardKey.shift):
+        LogicalKeySet(LogicalKeyboardKey.end,downComboKey):
         const DirectionIntent(-1, 1, -1),
-        LogicalKeySet(LogicalKeyboardKey.home,LogicalKeyboardKey.shift):
+        LogicalKeySet(LogicalKeyboardKey.home,downComboKey):
         const DirectionIntent(-1, -1, -1),
-        LogicalKeySet(LogicalKeyboardKey.pageUp,LogicalKeyboardKey.shift):
+        LogicalKeySet(LogicalKeyboardKey.pageUp,downComboKey):
+        const DirectionIntent(1, -1, -1),
+        LogicalKeySet(LogicalKeyboardKey.pageDown,downComboKey):
         const DirectionIntent(1, 1, -1),
-        LogicalKeySet(LogicalKeyboardKey.pageDown,LogicalKeyboardKey.shift):
-        const DirectionIntent(-1, -1, -1),
-        LogicalKeySet(LogicalKeyboardKey.shift,LogicalKeyboardKey.clear):
+        LogicalKeySet(LogicalKeyboardKey.clear,downComboKey):
         const DirectionIntent(0, 0, -1),
 
-        LogicalKeySet(LogicalKeyboardKey.arrowUp,LogicalKeyboardKey.control):
+        LogicalKeySet(LogicalKeyboardKey.arrowUp,upComboKey):
         const DirectionIntent(0, -1, 1),
-        LogicalKeySet(LogicalKeyboardKey.arrowDown,LogicalKeyboardKey.control):
+        LogicalKeySet(LogicalKeyboardKey.arrowDown,upComboKey):
         const DirectionIntent(0, 1, 1),
-        LogicalKeySet(LogicalKeyboardKey.arrowLeft,LogicalKeyboardKey.control):
+        LogicalKeySet(LogicalKeyboardKey.arrowLeft,upComboKey):
         const DirectionIntent(-1, 0, 1),
-        LogicalKeySet(LogicalKeyboardKey.arrowRight,LogicalKeyboardKey.control):
+        LogicalKeySet(LogicalKeyboardKey.arrowRight,upComboKey):
         const DirectionIntent(1, 0, 1),
-        LogicalKeySet(LogicalKeyboardKey.end,LogicalKeyboardKey.control):
+        LogicalKeySet(LogicalKeyboardKey.end,upComboKey):
         const DirectionIntent(-1, 1, 1),
-        LogicalKeySet(LogicalKeyboardKey.home,LogicalKeyboardKey.control):
+        LogicalKeySet(LogicalKeyboardKey.home,upComboKey):
         const DirectionIntent(-1, -1, 1),
-        LogicalKeySet(LogicalKeyboardKey.pageUp,LogicalKeyboardKey.control):
+        LogicalKeySet(LogicalKeyboardKey.pageUp,upComboKey):
+        const DirectionIntent(1, -1, 1),
+        LogicalKeySet(LogicalKeyboardKey.pageDown,upComboKey):
         const DirectionIntent(1, 1, 1),
-        LogicalKeySet(LogicalKeyboardKey.pageDown,LogicalKeyboardKey.control):
-        const DirectionIntent(-1, -1, 1),
-        LogicalKeySet(LogicalKeyboardKey.shift,LogicalKeyboardKey.control):
-        const DirectionIntent(0, 0, 1),
-        LogicalKeySet(LogicalKeyboardKey.control,LogicalKeyboardKey.clear):
+        LogicalKeySet(LogicalKeyboardKey.clear,upComboKey):
         const DirectionIntent(0, 0, 1),
 
         LogicalKeySet(LogicalKeyboardKey.clear):
@@ -115,6 +116,9 @@ class MainInput extends StatelessWidget {
 
         LogicalKeySet(LogicalKeyboardKey.keyS):
         const ScannerModeIntent(mode: null),
+
+        LogicalKeySet(LogicalKeyboardKey.keyS, LogicalKeyboardKey.shift):
+        const ScannerModeIntent(mode: null, forwards: false),
       },
       actions: {
         DirectionIntent: CallbackAction<DirectionIntent>(

@@ -27,7 +27,19 @@ import 'message_worker.dart';
 enum MusicalMood {intro,danger,planet,space}
 enum InputMode {main,inventory,hyperspace,planet,repair,techShop,broadcast,dnaShop,tavern}
 enum ScannerMode {
-  all,objects,storms,field,ships,planets,stars,ion,neb,roid,oddities;
+  all(Colors.white),
+  objects(Colors.cyan),
+  ships(Colors.green),
+  planets(Colors.blue),
+  stars(Colors.yellow),
+  ion(Colors.orange),
+  neb(Colors.deepPurple),
+  roid(Colors.grey),
+  oddities(Colors.pink),
+  storms(Colors.redAccent),
+  field(Colors.brown),;
+  final Color color;
+  const ScannerMode(this.color);
   bool get scaningShips => this == ScannerMode.ships || this == ScannerMode.objects;
   bool get scaningPlanets => this == ScannerMode.planets || this == ScannerMode.objects;
   bool get scaningStars => this == ScannerMode.stars || this == ScannerMode.objects;
@@ -112,7 +124,7 @@ class FugueModel with ChangeNotifier {
     pilotMap[player] = playShip;
     for (System sys in galaxy.systems) {
       for (int i=0;i<rnd.nextInt(3);i++) {
-        Pilot pilot = Pilot(faker.name.fullName());
+        Pilot pilot = Pilot(faker.name.fullName(),sys);
         final cell = sys.map.rndCell(rnd);
         Ship ship = Ship("${Rng.rndColorName(rnd)}${faker.animal.snake()}",
             pilot,shipClass: ShipClass.mentok,loc: SystemLocation(sys, cell));
@@ -167,27 +179,29 @@ class FugueModel with ChangeNotifier {
     Ship? ship = playerShip; if (ship == null) {
       blocks.add(const TextBlock("No ship!",Colors.red,true));
     } else {
+      blocks.add(TextBlock("System: ${ship.pilot!.system.name}",Colors.cyan,true));
       blocks.addAll(ship.status());
     }
     return blocks;
   }
 
-  String scannerText({ScannerMode? mode}) {
-    StringBuffer sb = StringBuffer();
-    sb.writeln("Scanner mode: ${scannerMode.name}");
+  List<TextBlock> scannerText({ScannerMode? mode}) {
+    List<TextBlock> blocks = [];
+    blocks.add(const TextBlock("Scanner mode: ",Colors.white,false));
+    blocks.add(TextBlock(scannerMode.name, scannerMode.color, true));
     Ship? ship = playerShip; if (ship == null) {
-      sb.writeln("-");
+      blocks.add(const TextBlock("?", Colors.red, true));
     } else {
       final cells = ship.loc.level.map.cells.values
           .where((c) => c.scannable(ship.loc.level.map, mode ?? scannerMode))
           .sorted((c1,c2) => c1.coord.distance(ship.loc.cell.coord).compareTo(c2.coord.distance(ship.loc.cell.coord)));
       for (GridCell cell in cells) {
         if (!cell.empty(ship.loc.level.map)) {
-          sb.writeln(cell.toScannerString(ship.loc.level.map));
+          blocks.add(TextBlock(cell.toScannerString(ship.loc.level.map), scannerMode.color, true));
         }
       }
     }
-    return sb.toString();
+    return blocks;
   }
 
   void toggleScannerMode({bool forwards = true}) {
@@ -307,6 +321,7 @@ class FugueModel with ChangeNotifier {
           sysLoc.level.map.removeShip(ship);
           final stars = system.map.cells.values.where((c) => c is SectorCell && c.starClass != null);
           ship.loc = SystemLocation(system, stars.first);
+          pilot.system = system;
           pilotAction(pilot,ActionType.sector);
           return true;
         }
@@ -694,8 +709,7 @@ class FugueModel with ChangeNotifier {
     if (updateAfter) update();
   }
 
-  void runUntilNextPlayerTurn() {
-    print("Running until next turn...");
+  void runUntilNextPlayerTurn() { print("Running until next turn...");
     do { //print("Tick: $auTick");
       for (Pilot p in activePilots) {
         p.tick();

@@ -16,15 +16,15 @@ class AsciiViewState extends State<AsciiView> {
   @override
   Widget build(BuildContext context) {
     return Column(children: [
-      Expanded(child :Container(color: Colors.black, child: MessageLog(messageNotifier: widget.fugueModel.msgWorker.messageNotifier))),
-      Expanded(child: Row(children: [
-        Expanded(child: Container(color: Colors.black, child: Text(
-          widget.fugueModel.scannerText(), style: const TextStyle(color: Colors.greenAccent),
+      Expanded(flex: 1, child :Container(color: Colors.black, child: MessageLog(messageNotifier: widget.fugueModel.msgWorker.messageNotifier))),
+      Expanded(flex: 2, child: Row(children: [
+        Expanded(child: Container(color: Colors.black, child: TextBlockWidget(
+          widget.fugueModel.scannerText()
         ))),
         AspectRatio(aspectRatio: 1, child: AsciiGrid(widget.fugueModel)),
-        Expanded(child: Container(color: Colors.black, child: TextBlockWidget(
+        Expanded(child: Container(color: Colors.black, child: Padding(padding: const EdgeInsets.only(left: 8), child: TextBlockWidget(
           widget.fugueModel.statusText(),
-        )))
+        ))))
       ]))
     ]);
   }
@@ -36,13 +36,12 @@ class TextBlockWidget extends StatelessWidget {
   const TextBlockWidget(this.blocks, {super.key});
 
   @override
-  Widget build(BuildContext context) {
-    //print("TextBlockWidget building with blocks: ${blocks.length}");
+  Widget build(BuildContext context) { //print("TextBlockWidget building with blocks: ${blocks.length}");
     List<Widget> lines = [];
     List<Widget> currentLine = [];
 
     for (final block in blocks) { //print(block.txt);
-      currentLine.add(Text(block.txt, style: TextStyle(color: block.color)));
+      currentLine.add(Text(block.txt, style: TextStyle(color: block.color, fontFamily: "JetBrainsMono")));
 
       if (block.newline) { //print("Adding line, len: ${currentLine.length}");
         lines.add(Row(children: currentLine));
@@ -54,12 +53,8 @@ class TextBlockWidget extends StatelessWidget {
       lines.add(Row(children: currentLine));
     }
 
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return ListView(
         children: lines,
-      ),
     );
   }
 

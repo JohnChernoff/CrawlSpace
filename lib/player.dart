@@ -1,7 +1,6 @@
 import 'package:space_fugue/pilot.dart';
 import 'package:space_fugue/planet.dart';
 import 'package:space_fugue/ship.dart';
-import 'package:space_fugue/system.dart';
 
 class TradeTarget {
   Planet planet;
@@ -14,7 +13,6 @@ enum OrbitResult {newOrbit,sameOrbit,insufficientEnergy,noShip}
 
 class Player extends Pilot {
   static const maxDna = 36;
-  System system;
   Planet? planet;
   int credits = 100;
   int dnaScram = 5;
@@ -26,7 +24,7 @@ class Player extends Pilot {
   int piratesVanquished = 0;
   Set<Ship> fleet = {};
 
-  Player(super.name,this.system, {super.hostile = false});
+  Player(super.name,super.system, {super.hostile = false});
 
   int fedLevel() => planet?.fedLvl ?? system.fedLvl;
   int techLevel() => planet?.techLvl ?? system.techLvl;
