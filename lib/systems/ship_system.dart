@@ -1,5 +1,6 @@
 import 'dart:math';
-import 'item.dart';
+
+import '../item.dart';
 
 class ShipClassSlot {
   final SystemSlot slot;

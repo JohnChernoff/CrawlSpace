@@ -3,10 +3,10 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:space_fugue/fugue_model.dart';
+import 'package:space_fugue/views/ascii_view.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'ascii_view.dart';
 import 'galaxy.dart';
-import 'galaxy_view.dart';
+import 'views/galaxy_view.dart';
 import 'options.dart';
 
 /*

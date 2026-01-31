@@ -1,12 +1,14 @@
 import 'dart:math';
-import 'package:space_fugue/engines.dart';
 import 'package:space_fugue/fugue_model.dart';
 import 'package:space_fugue/pilot.dart';
 import 'package:space_fugue/player.dart';
-import 'package:space_fugue/power.dart';
-import 'package:space_fugue/shields.dart';
-import 'package:space_fugue/ship_system.dart';
-import 'package:space_fugue/weapons.dart';
+import 'package:space_fugue/stock_items/stock_ships.dart';
+import 'package:space_fugue/systems/engines.dart';
+import 'package:space_fugue/systems/power.dart';
+import 'package:space_fugue/systems/shields.dart';
+import 'package:space_fugue/stock_items/stock_power.dart';
+import 'package:space_fugue/systems/ship_system.dart';
+import 'package:space_fugue/systems/weapons.dart';
 import 'impulse.dart';
 import 'item.dart';
 import 'location.dart';
@@ -16,47 +18,6 @@ class HullResistance {
   final DamageType dmgType;
   final double resistance;
   const HullResistance(this.dmgType,this.resistance);
-}
-
-enum HullType {
-  basic([],1),
-  ablative([HullResistance(DamageType.kinetic,.5)],2),
-  refractive([HullResistance(DamageType.light,.33)],2.5),
-  crystalline([
-    HullResistance(DamageType.kinetic,.66),
-    HullResistance(DamageType.plasma,.25),
-  ],5),
-  hypercarbon([
-    HullResistance(DamageType.fire,.66),
-    HullResistance(DamageType.plasma,.5),
-    HullResistance(DamageType.sonic,.5),
-  ],6.6);
-  final List<HullResistance> resistances;
-  final double baseRepairCost; //in kilos
-  const HullType(this.resistances,this.baseRepairCost);
-}
-
-enum ShipClass {
-  mentok("Mentok",ShipType.scout,
-      [ShipClassSlot(SystemSlot(SystemSlotType.generic,1),8)],
-      100
-  ),
-  galaxy("Galaxy",ShipType.flagship,
-      [
-        ShipClassSlot(SystemSlot(SystemSlotType.bauchmann,4),4),
-        ShipClassSlot(SystemSlot(SystemSlotType.sinclair,2),1),
-      ],
-      1000
-  );
-  final String name;
-  final ShipType type;
-  final List<ShipClassSlot> slots;
-  final double maxMass;
-  const ShipClass(this.name,this.type,this.slots,this.maxMass);
-}
-
-enum ShipType { //TODO: color codes
-  scout,skiff,cruiser,destroyer,interceptor,flagship,unknown
 }
 
 class InstalledSystem {
@@ -95,13 +56,12 @@ class Ship {
         installedSystems.add(InstalledSystem(classSlot.slot,null));
       }
     }
-    generator ??= stockPP(StockPower.basicNuclear);
+    generator ??= PowerGenerator.fromStock(StockPower.basicNuclear);
     hyperEngine ??= stockHyperspaceEngines[StockHyperspaceEngine.basicFed]!;
     subEngine ??= stockSublightEngines[StockSublightEngine.basicFed]!;
     impEngine ??= stockImpulseEngines[StockImpulseEngine.basicFed]!;
     shield ??= stockShields[StockShield.basicEnergon]!;
     weapons ??= [stockWeapons[StockWeapon.basicLaser]!];
-
 
     inventory.add(generator);
     installSystem(generator);

@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:space_fugue/ascii_view.dart';
 import 'package:space_fugue/fugue_model.dart';
 import 'package:space_fugue/message_log.dart';
-import 'galaxy_map.dart';
+import '../galaxy_map.dart';
+import 'ascii_view.dart';
 
 class GalaxyView extends StatefulWidget {
   final FugueModel fugueModel;

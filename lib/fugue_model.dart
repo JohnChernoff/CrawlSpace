@@ -14,6 +14,7 @@ import 'package:space_fugue/planet.dart';
 import 'package:space_fugue/player.dart';
 import 'package:space_fugue/rng.dart';
 import 'package:space_fugue/ship.dart';
+import 'package:space_fugue/stock_items/stock_ships.dart';
 import 'package:space_fugue/system.dart';
 import 'actions.dart';
 import 'agent.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'coord_3d.dart';
-import 'fugue_model.dart';
+import '../coord_3d.dart';
+import '../fugue_model.dart';
 
 class CancelToMainIntent extends Intent {
   const CancelToMainIntent();

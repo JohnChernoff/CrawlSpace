@@ -1,5 +1,5 @@
-import 'package:space_fugue/power.dart';
-import 'package:space_fugue/ship_system.dart';
+import 'package:space_fugue/systems/power.dart';
+import 'package:space_fugue/systems/ship_system.dart';
 
 enum StockShield { basicEnergon }
 Map<StockShield,Shield> stockShields = {

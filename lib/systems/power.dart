@@ -1,33 +1,6 @@
 import 'dart:math';
-import 'package:space_fugue/ship_system.dart';
-
-enum StockPowerField {name,powertype,maxEnergy,rechargeRate,baseCost,baseRepairCost,mass,powerDraw}
-Map<StockPower,Map<StockPowerField,dynamic>> stockPPs = {
-  StockPower.basicNuclear : {
-    StockPowerField.name : "Fed Mk 1 Power Plant",
-    StockPowerField.powertype : PowerType.nuclear,
-    StockPowerField.maxEnergy : 500,
-    StockPowerField.rechargeRate : .01,
-    StockPowerField.baseCost : 250,
-    StockPowerField.baseRepairCost : 1,
-    StockPowerField.mass : 75,
-    StockPowerField.powerDraw : 0,
-  }
-};
-
-PowerGenerator stockPP(StockPower stockPower) {
-  return PowerGenerator(
-      stockPPs[stockPower]![StockPowerField.name],
-      powerType: stockPPs[stockPower]![StockPowerField.powertype],
-      maxEnergy: stockPPs[stockPower]![StockPowerField.maxEnergy],
-      rechargeRate: stockPPs[stockPower]![StockPowerField.rechargeRate],
-      baseCost: stockPPs[stockPower]![StockPowerField.baseCost],
-      baseRepairCost: stockPPs[stockPower]![StockPowerField.baseRepairCost],
-      mass: stockPPs[stockPower]![StockPowerField.mass],
-      powerDraw: stockPPs[stockPower]![StockPowerField.powerDraw]);
-}
-
-enum StockPower { basicNuclear }
+import 'package:space_fugue/stock_items/stock_power.dart';
+import 'package:space_fugue/systems/ship_system.dart';
 
 enum PowerType {
   nuclear,antimatter,quantum,dark,astral
@@ -92,5 +65,19 @@ class PowerGenerator extends RechargableShipSystem {
     super.stability,
     super.repairDifficulty,
   });
+
+  factory PowerGenerator.fromStock(StockPower stock) {
+    final data = stockPPs[stock]!;
+    return PowerGenerator(
+      data.name,
+      powerType: data.powerType,
+      maxEnergy: data.maxEnergy,
+      rechargeRate: data.rechargeRate,
+      baseCost: data.baseCost,
+      baseRepairCost: data.baseRepairCost,
+      mass: data.mass,
+      powerDraw: data.powerDraw,
+    );
+  }
 
 }

@@ -2,12 +2,13 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:space_fugue/coord_3d.dart';
 import 'package:space_fugue/grid.dart';
-import 'package:space_fugue/hyper_input.dart';
-import 'package:space_fugue/planet_input.dart';
+import 'package:space_fugue/inputs/hyper_input.dart';
+import 'package:space_fugue/inputs/planet_input.dart';
 import 'package:space_fugue/ship.dart';
 import 'package:space_fugue/system.dart';
-import 'fugue_model.dart';
-import 'main_input.dart';
+
+import '../fugue_model.dart';
+import '../inputs/main_input.dart';
 
 class AsciiGrid extends StatefulWidget {
   final FugueModel fugueModel;

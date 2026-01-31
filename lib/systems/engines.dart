@@ -1,4 +1,4 @@
-import 'package:space_fugue/ship_system.dart';
+import 'package:space_fugue/systems/ship_system.dart';
 
 enum StockImpulseEngine { basicFed }
 Map<StockImpulseEngine,ImpulseEngine> stockImpulseEngines = {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:space_fugue/ascii_grid.dart';
 import 'package:space_fugue/message_log.dart';
-import 'fugue_model.dart';
+import '../fugue_model.dart';
+import 'ascii_grid.dart';
 
 class AsciiView extends StatefulWidget {
   final FugueModel fugueModel;

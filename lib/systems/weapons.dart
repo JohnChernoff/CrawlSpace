@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'package:space_fugue/galaxy.dart';
 import 'package:space_fugue/rng.dart';
 import 'package:space_fugue/ship.dart';
-import 'package:space_fugue/ship_system.dart';
+import 'package:space_fugue/systems/ship_system.dart';
 
 enum DamageType {
   light, plasma, fire, kinetic, sonic, gravitron, neutrino, etherial

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'fugue_model.dart';
+import '../fugue_model.dart';
 
 enum PlanetAction {
   spy,hack,scout,tavern,trade,broadcast,dna,repair,upgrade

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_force_directed_graph/widget/force_directed_graph_controller.dart';
 import 'package:flutter_force_directed_graph/widget/force_directed_graph_widget.dart';
 import 'package:space_fugue/fugue_model.dart';
-import 'package:space_fugue/galaxy_view.dart';
+import 'package:space_fugue/views/galaxy_view.dart';
 import 'package:space_fugue/system.dart';
 import 'agent.dart';
 import 'galaxy.dart';
