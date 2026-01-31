@@ -16,11 +16,9 @@ class Player extends Pilot {
   static const maxDna = 36;
   System system;
   Planet? planet;
-  Planet? orbiting;
   int credits = 100;
   int dnaScram = 5;
   TradeTarget? tradeTarget;
-  bool landed = false;
   bool starOne = false;
   int thievery = 25; //200-300
   int broadcasts = 0;

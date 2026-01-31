@@ -1,19 +1,33 @@
 import 'dart:math';
-
 import 'package:space_fugue/ship_system.dart';
 
-enum StockPower { basicNuclear }
-Map<StockPower,PowerGenerator> stockGenerators = {
-  StockPower.basicNuclear : PowerGenerator("Fed Mk 1 Power Plant",
-    powerType: PowerType.nuclear,
-    maxEnergy: 500,
-    rechargeRate: 2.5,
-    baseCost: 250,
-    baseRepairCost: 1,
-    mass: 75,
-    powerDraw: 0,
-  )
+enum StockPowerField {name,powertype,maxEnergy,rechargeRate,baseCost,baseRepairCost,mass,powerDraw}
+Map<StockPower,Map<StockPowerField,dynamic>> stockPPs = {
+  StockPower.basicNuclear : {
+    StockPowerField.name : "Fed Mk 1 Power Plant",
+    StockPowerField.powertype : PowerType.nuclear,
+    StockPowerField.maxEnergy : 500,
+    StockPowerField.rechargeRate : .01,
+    StockPowerField.baseCost : 250,
+    StockPowerField.baseRepairCost : 1,
+    StockPowerField.mass : 75,
+    StockPowerField.powerDraw : 0,
+  }
 };
+
+PowerGenerator stockPP(StockPower stockPower) {
+  return PowerGenerator(
+      stockPPs[stockPower]![StockPowerField.name],
+      powerType: stockPPs[stockPower]![StockPowerField.powertype],
+      maxEnergy: stockPPs[stockPower]![StockPowerField.maxEnergy],
+      rechargeRate: stockPPs[stockPower]![StockPowerField.rechargeRate],
+      baseCost: stockPPs[stockPower]![StockPowerField.baseCost],
+      baseRepairCost: stockPPs[stockPower]![StockPowerField.baseRepairCost],
+      mass: stockPPs[stockPower]![StockPowerField.mass],
+      powerDraw: stockPPs[stockPower]![StockPowerField.powerDraw]);
+}
+
+enum StockPower { basicNuclear }
 
 enum PowerType {
   nuclear,antimatter,quantum,dark,astral
@@ -23,17 +37,13 @@ enum PowerEgo {
   none,nebular,ionic,gravimetric,stable,efficient
 }
 
-class PowerGenerator extends ShipSystem {
+class RechargableShipSystem extends ShipSystem {
   final double _maxEnergy;
   double _currentEnergy;
-  double rechargeRate; //% per turn
-  PowerType powerType;
-  PowerEgo ego;
+  double rechargeRate; //% per aut
 
-  PowerGenerator(super.name, {
-    super.type = ShipSystemType.power,
-    required this.powerType,
-    this.ego = PowerEgo.none,
+  RechargableShipSystem(super.name, {
+    required super.type,
     required double maxEnergy,
     required this.rechargeRate,
     required super.baseCost,
@@ -59,8 +69,28 @@ class PowerGenerator extends ShipSystem {
   }
 
   double get rawMaxEnergy => _maxEnergy;
-  double get currentMaxEnergy => _maxEnergy * damage;
+  double get currentMaxEnergy => _maxEnergy * (1-damage);
   double get rawEnergy => _currentEnergy;
-  double get currentEnergy => _currentEnergy * damage;
+  double get currentEnergy => _currentEnergy * (1-damage);
+}
+
+class PowerGenerator extends RechargableShipSystem {
+  PowerType powerType;
+  PowerEgo ego;
+
+  PowerGenerator(super.name, {
+    super.type = ShipSystemType.power,
+    required super.maxEnergy,
+    required this.powerType,
+    this.ego = PowerEgo.none,
+    required super.rechargeRate,
+    required super.baseCost,
+    required super.baseRepairCost,
+    required super.mass,
+    required super.powerDraw,
+    super.rarity,
+    super.stability,
+    super.repairDifficulty,
+  });
 
 }

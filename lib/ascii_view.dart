@@ -22,10 +22,45 @@ class AsciiViewState extends State<AsciiView> {
           widget.fugueModel.scannerText(), style: const TextStyle(color: Colors.greenAccent),
         ))),
         AspectRatio(aspectRatio: 1, child: AsciiGrid(widget.fugueModel)),
-        Expanded(child: Container(color: Colors.black, child: Text(
-          widget.fugueModel.statusText(), style: const TextStyle(color: Colors.greenAccent),
+        Expanded(child: Container(color: Colors.black, child: TextBlockWidget(
+          widget.fugueModel.statusText(),
         )))
       ]))
     ]);
   }
+}
+
+class TextBlockWidget extends StatelessWidget {
+  final List<TextBlock> blocks;
+
+  const TextBlockWidget(this.blocks, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    //print("TextBlockWidget building with blocks: ${blocks.length}");
+    List<Widget> lines = [];
+    List<Widget> currentLine = [];
+
+    for (final block in blocks) { //print(block.txt);
+      currentLine.add(Text(block.txt, style: TextStyle(color: block.color)));
+
+      if (block.newline) { //print("Adding line, len: ${currentLine.length}");
+        lines.add(Row(children: currentLine));
+        currentLine = [];
+      }
+    }
+
+    if (currentLine.isNotEmpty) {
+      lines.add(Row(children: currentLine));
+    }
+
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: lines,
+      ),
+    );
+  }
+
 }

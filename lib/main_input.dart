@@ -30,6 +30,10 @@ class ScannerModeIntent extends Intent {
   const ScannerModeIntent({this.mode,this.forwards = true});
 }
 
+class LoiterIntent extends Intent {
+    const LoiterIntent();
+}
+
 class MainInput extends StatelessWidget {
   final Widget child;
   final FugueModel fm;
@@ -97,6 +101,9 @@ class MainInput extends StatelessWidget {
         LogicalKeySet(LogicalKeyboardKey.control,LogicalKeyboardKey.clear):
         const DirectionIntent(0, 0, 1),
 
+        LogicalKeySet(LogicalKeyboardKey.clear):
+        const LoiterIntent(),
+
         LogicalKeySet(LogicalKeyboardKey.keyP):
         const OpenPlanetMenuIntent(),
 
@@ -144,7 +151,13 @@ class MainInput extends StatelessWidget {
             }
             return null;
           }
-        )
+        ),
+        LoiterIntent: CallbackAction<LoiterIntent>(
+            onInvoke: (_) {
+              fm.loiter();
+              return null;
+            }
+        ),
       },
       child: child,
     );

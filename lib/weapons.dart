@@ -17,7 +17,7 @@ Map<StockWeapon,Weapon> stockWeapons = {
   StockWeapon.basicLaser : Weapon( "Basic Laser",
     baseCost: 100,
     baseRepairCost: 1.5,
-    powerDraw: .1,
+    powerDraw: .25,
     dmgDice: 1,
     dmgDiceSides: 6,
     dmgBase: 1,

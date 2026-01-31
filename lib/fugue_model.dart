@@ -22,7 +22,6 @@ import 'galaxy_graph.dart';
 import 'grid.dart';
 import 'location.dart';
 import 'message_worker.dart';
-import 'options.dart';
 
 enum MusicalMood {intro,danger,planet,space}
 enum InputMode {main,inventory,hyperspace,planet,repair,techShop,broadcast,dnaShop,tavern}
@@ -38,6 +37,13 @@ enum ScannerMode {
   bool get scaningStarOne => this == ScannerMode.oddities;
 }
 const blownUp = -1;
+
+class TextBlock {
+  final String txt;
+  final bool newline;
+  final Color color;
+  const TextBlock(this.txt,this.color,this.newline);
+}
 
 class FugueModel with ChangeNotifier {
   Galaxy galaxy;
@@ -153,16 +159,16 @@ class FugueModel with ChangeNotifier {
     pilotAction(player, ActionType.sector);
   }
 
-  String statusText() {
-    StringBuffer sb = StringBuffer();
-    sb.writeln("Status: ");
+  List<TextBlock> statusText() {
+    List<TextBlock> blocks = [];
+    blocks.add(const TextBlock("Status: ",Colors.white,true));
+
     Ship? ship = playerShip; if (ship == null) {
-      sb.writeln("No ship!");
+      blocks.add(const TextBlock("No ship!",Colors.red,true));
     } else {
-      sb.writeln(ship.name);
-      sb.writeln(ship.loc.cell);
+      blocks.addAll(ship.status());
     }
-    return sb.toString();
+    return blocks;
   }
 
   String scannerText({ScannerMode? mode}) {
@@ -359,7 +365,6 @@ class FugueModel with ChangeNotifier {
 
   void launch() {
     player.planet = null; //still orbiting planet
-    player.landed = false;
     inputMode = InputMode.main;
     addMsg("Launching...");
     pilotAction(player,ActionType.planetLaunch);
@@ -400,14 +405,6 @@ class FugueModel with ChangeNotifier {
       if (link != path.last) sb.write(" -> ");
     }
     return sb.toString();
-  }
-
-  void landCheck() {
-    if (!player.landed) {
-      addMsg("Landing on ${player.planet?.name}...");
-      player.landed = true;
-      pilotAction(player,ActionType.planetLand);
-    }
   }
 
   int jumps(List<System>? path) => (path?.length ?? 0) - 1;
@@ -492,17 +489,12 @@ class FugueModel with ChangeNotifier {
     if (ship == null) {
       addMsg("You're not in a ship."); return;
     }
-    if (player.orbiting != null) {
-      goPlan(null); return;
-    }
     //if (player.lastAct == ActionType.energyScoop && !pirateCheck(numPirates: 2)) return;
     double amount = 50;
     //((ship.energyConvertor.value/(Rng.biasedRndInt(rnd,mean: 50, min: 25, max: 80))) * player.system.starClass.power).floor();
     addMsg("Scooping class ${player.system.starClass.name} star... gained ${ship.recharge(amount)} energy");
     pilotAction(player,ActionType.energyScoop);
   }
-
-
 
   void heat(int v, {System? sighted}) {
     for (Agent agent in agents) {
@@ -647,21 +639,51 @@ class FugueModel with ChangeNotifier {
     final l = ship.loc;
     GridCell? destination = l.level.map.cells[c];
     if (destination != null) {
+      _moveShipOnMap(ship, destination);
       final dist = l.cell.coord.distance(destination.coord);
-      l.level.map.removeShip(ship);
-      l.level.map.addShip(ship, destination);
+      bool moving = false;
       if (l is SystemLocation) {
-        ship.loc = SystemLocation(l.level,destination); //TODO: sublight engine?
-        //ship.pilot?.auCooldown += (ship.subLightEngine.baseAutPerUnitTraversal * dist).round();
-        pilotAction(ship.pilot, ActionType.movement);
-      } else if (l is ImpulseLocation) {
+        final engine = ship.subEngine;
+        if (engine != null) {
+          double energyUsed = 10 * (1 / engine.efficiency) * dist;
+          moving = ship.burnEnergy(energyUsed);
+          if (moving) {
+            ship.loc = SystemLocation(l.level,destination);
+            int auts = (engine.baseAutPerUnitTraversal * dist).round(); //print("Auts: $auts");
+            pilotAction(ship.pilot, ActionType.movement,actionAuts: auts);
+          } else {
+            addMsg("Out of energy");
+          }
+        }
+      } else if (l is ImpulseLocation) { //TODO: reuse above code somehow
         final engine = ship.impEngine;
         if (engine != null) {
-          ship.loc = ImpulseLocation(l.systemLoc,l.level,destination);
-          pilotAction(ship.pilot, ActionType.movement,actionAuts: (engine.baseAutPerUnitTraversal * dist).round());
+          double energyUsed = 10 * (1 / engine.efficiency) * dist;
+          moving = ship.burnEnergy(energyUsed);
+          if (moving) {
+            ship.loc = ImpulseLocation(l.systemLoc,l.level,destination);
+            int auts = (engine.baseAutPerUnitTraversal * dist).round();
+            pilotAction(ship.pilot, ActionType.movement,actionAuts: auts);
+          } else {
+            addMsg("Out of energy");
+          }
         }
+      } else {
+        addMsg("Error: no engine");
+      }
+      if (!moving) {
+        _moveShipOnMap(ship,ship.loc.cell);
       }
     }
+  }
+
+  void loiter({int auts = 10}) {
+    pilotAction(player, ActionType.movement, actionAuts: auts);
+  }
+
+  void _moveShipOnMap(Ship ship, GridCell destination) {
+    ship.loc.level.map.removeShip(ship);
+    ship.loc.level.map.addShip(ship, destination);
   }
 
   int score() => auTick + (player.starOne ? 500 : 0) + (galaxy.discoveredSystems() * 2) + (player.piratesVanquished * 3) + (victory ? 1000 : 0);
@@ -672,15 +694,22 @@ class FugueModel with ChangeNotifier {
   }
 
   void runUntilNextPlayerTurn() {
+    print("Running until next turn...");
     do {
+      print("Tick: $auTick");
       for (Pilot p in activePilots) {
         p.tick();
-        if (p.ready && pilotMap[p]!.loc.level == playerShip?.loc.level) {
-          vectorShip(pilotMap[p]!,Rng.rndUnitVector(rnd));
+        Ship ship = pilotMap[p]!;
+        if (ship.loc.level == playerShip?.loc.level) {
+          ship.tick();
+          if (p.ready) {
+            vectorShip(ship,Rng.rndUnitVector(rnd));
+          }
         }
       }
       auTick++;
       player.tick();
+      playerShip?.tick();
     } while (!player.ready);
     update();
   }

@@ -71,7 +71,7 @@ class ShipSystem extends Item {
   final double powerDraw; //per 1 aut of use
   final double stability;
   final double repairDifficulty;
-  bool active = false;
+  bool active = true;
 
   ShipSystem(super.name,{
     required this.type,

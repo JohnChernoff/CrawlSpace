@@ -184,8 +184,7 @@ class System extends Level {
         for (int z=0;z<size;z++) {
           double neb = (nebulaFactor > rnd.nextDouble() ? 1 : 0);
           double ion = (ionFactor > rnd.nextDouble() ? 1 : 0);
-          final c = Coord3D(x, y, z);
-          if (neb == 1) print("System: $name, neb: $neb -> $c");
+          final c = Coord3D(x, y, z); //if (neb == 1) print("System: $name, neb: $neb -> $c");
           cells.putIfAbsent(c, () => SectorCell(c,rnd.nextInt(999999),nebula: neb, ionStorm: ion));
         }
       }
