@@ -61,7 +61,7 @@ class SystemSlot {
   }
 }
 
-class ShipSystem extends Item {
+abstract class ShipSystem extends Item {
   final ShipSystemType type;
   final SystemSlot slot;
   final double mass; //kilos
@@ -104,5 +104,31 @@ class ShipSystem extends Item {
       damage = dmg; return i;
     } return 0;
   }
+}
 
+class ShipSystemData {
+  final String name;
+  final SystemSlot slot;
+  final double mass; //kilos
+  final double rarity;
+  final int baseCost;
+  final double baseRepairCost; //credits per 1% repair
+  final int enhancement;
+  final int maxEnhancement;
+  final double powerDraw; //per 1 aut of use
+  final double stability;
+  final double repairDifficulty;
+
+  const ShipSystemData(this.name,{
+    this.slot = const SystemSlot(SystemSlotType.generic, 1),
+    required this.mass,
+    required this.baseCost,
+    required this.baseRepairCost,
+    required this.powerDraw,
+    this.rarity = .1,
+    this.enhancement = 0,
+    this.maxEnhancement = 9,
+    this.stability = .8,
+    this.repairDifficulty = .5,
+  });
 }

@@ -1,21 +1,6 @@
+import 'package:space_fugue/stock_items/stock_shields.dart';
 import 'package:space_fugue/systems/power.dart';
 import 'package:space_fugue/systems/ship_system.dart';
-
-enum StockShield { basicEnergon }
-Map<StockShield,Shield> stockShields = {
-  StockShield.basicEnergon : Shield("Basic Energon Shield",
-    shieldType: ShieldType.energon,
-    maxEnergy: 200,
-    stability: .5,
-    repairDifficulty: .5,
-    rechargeRate: .2,
-    baseCost: 500,
-    baseRepairCost: 2.5,
-    rarity: .05,
-    powerDraw: 2.5,
-    mass: 50
-  )
-};
 
 enum ShieldType {
   fusion, fission, energon, gravimetric, nullSpace, darkMatter
@@ -39,10 +24,44 @@ class Shield extends RechargableShipSystem {
     required super.baseRepairCost,
     required super.powerDraw,
     required super.mass,
+    super.slot,
     super.rarity,
     super.stability,
     super.repairDifficulty,
   });
 
+  factory Shield.fromStock(StockShield stock) {
+    ShieldData data = stockShields[stock]!;
+    return Shield(
+      data.systemData.name,
+      slot: data.systemData.slot,
+      mass: data.systemData.mass,
+      powerDraw: data.systemData.powerDraw,
+      stability: data.systemData.stability,
+      baseCost: data.systemData.baseCost,
+      baseRepairCost: data.systemData.baseRepairCost,
+      repairDifficulty: data.systemData.repairDifficulty,
+      rarity: data.systemData.rarity,
+      //
+      shieldType: data.shieldType,
+      maxEnergy: data.maxEnergy,
+      rechargeRate: data.rechargeRate
+    );
+  }
+}
 
+class ShieldData {
+  final ShipSystemData systemData;
+  final double maxEnergy;
+  final double rechargeRate;
+  final ShieldType shieldType;
+  final ShieldEgo ego;
+
+  const ShieldData({
+    required this.systemData,
+    required this.maxEnergy,
+    required this.rechargeRate,
+    required this.shieldType,
+    this.ego = ShieldEgo.none,
+  });
 }

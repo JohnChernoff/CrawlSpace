@@ -2,7 +2,10 @@ import 'dart:math';
 import 'package:space_fugue/fugue_model.dart';
 import 'package:space_fugue/pilot.dart';
 import 'package:space_fugue/player.dart';
+import 'package:space_fugue/stock_items/stock_engines.dart';
+import 'package:space_fugue/stock_items/stock_shields.dart';
 import 'package:space_fugue/stock_items/stock_ships.dart';
+import 'package:space_fugue/stock_items/stock_weapons.dart';
 import 'package:space_fugue/systems/engines.dart';
 import 'package:space_fugue/systems/power.dart';
 import 'package:space_fugue/systems/shields.dart';
@@ -44,9 +47,9 @@ class Ship {
     PowerGenerator? generator,
     List<Weapon>? weapons,
     Shield? shield,
-    ImpulseEngine? impEngine,
-    SublightEngine? subEngine,
-    HyperspaceEngine? hyperEngine,
+    Engine? impEngine,
+    Engine? subEngine,
+    Engine? hyperEngine,
     //TODO: more engines
     bool vacant = false}) {
 
@@ -57,24 +60,29 @@ class Ship {
       }
     }
     generator ??= PowerGenerator.fromStock(StockPower.basicNuclear);
-    hyperEngine ??= stockHyperspaceEngines[StockHyperspaceEngine.basicFed]!;
-    subEngine ??= stockSublightEngines[StockSublightEngine.basicFed]!;
-    impEngine ??= stockImpulseEngines[StockImpulseEngine.basicFed]!;
-    shield ??= stockShields[StockShield.basicEnergon]!;
-    weapons ??= [stockWeapons[StockWeapon.basicLaser]!];
+    hyperEngine ??= Engine.fromStock(StockEngine.basicFedHyperdrive);
+    subEngine ??= Engine.fromStock(StockEngine.basicFedSublight);
+    impEngine ??= Engine.fromStock(StockEngine.basicFedImpulse);
+    shield ??= Shield.fromStock(StockShield.basicEnergon);
+    weapons ??= [Weapon.fromStock(StockWeapon.basicLaser)];
 
     inventory.add(generator);
     installSystem(generator);
-    hyperEngine.active = false;
+
     inventory.add(hyperEngine);
     installSystem(hyperEngine);
+    hyperEngine.active = false;
+
     inventory.add(subEngine);
     installSystem(subEngine);
+
     inventory.add(impEngine);
     installSystem(impEngine);
     impEngine.active = false;
+
     inventory.add(shield);
     installSystem(shield);
+
     for (final w in weapons) {
       inventory.add(w);
       installSystem(w);
@@ -160,9 +168,9 @@ class Ship {
     return e;
   }
 
-  ImpulseEngine? get impEngine => getInstalledSystems(ShipSystemType.engine).whereType<ImpulseEngine>().firstOrNull;
-  SublightEngine? get subEngine => getInstalledSystems(ShipSystemType.engine).whereType<SublightEngine>().firstOrNull;
-  HyperspaceEngine? get hyperEngine => getInstalledSystems(ShipSystemType.engine).whereType<HyperspaceEngine>().firstOrNull;
+  Engine? get impEngine => getInstalledSystems(ShipSystemType.engine).whereType<Engine>().where((w) => w.domain == EngineDomain.impulse).firstOrNull;
+  Engine? get subEngine => getInstalledSystems(ShipSystemType.engine).whereType<Engine>().where((w) => w.domain == EngineDomain.sublight).firstOrNull;
+  Engine? get hyperEngine => getInstalledSystems(ShipSystemType.engine).whereType<Engine>().where((w) => w.domain == EngineDomain.hyperspace).firstOrNull;
 
   double repairHull(double amount) {
     double prevDam = hullDamage;
@@ -210,19 +218,19 @@ class Ship {
     double recharge = 0;
     for (final pp in getInstalledSystems(ShipSystemType.power)) {
       if (pp is PowerGenerator && pp.active && pp.currentEnergy < pp.currentMaxEnergy) {
-        recharge = pp.currentMaxEnergy * pp.rechargeRate * (1-pp.damage); print("Recharging: $recharge");
+        recharge = pp.currentMaxEnergy * pp.rechargeRate * (1-pp.damage); //print("Recharging: $recharge");
         pp.recharge(recharge);
       }
     }
     double totalBurn = 0;
     for (final s in installedSystems) {
       if (s.system != null && s.system!.active) {
-        double e = s.system!.powerDraw; print("Burning: $e");
+        double e = s.system!.powerDraw; //print("Burning: $e");
         burnEnergy(e);
         totalBurn += e;
       }
     }
-    print("$name: Net energy per tick: ${recharge - totalBurn}");
+    //print("$name: Net energy per tick: ${recharge - totalBurn}");
   }
 
   List<TextBlock> status() {

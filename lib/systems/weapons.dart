@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:space_fugue/galaxy.dart';
 import 'package:space_fugue/rng.dart';
 import 'package:space_fugue/ship.dart';
+import 'package:space_fugue/stock_items/stock_weapons.dart';
 import 'package:space_fugue/systems/ship_system.dart';
 
 enum DamageType {
@@ -11,26 +12,6 @@ enum DamageType {
 enum WeaponEgo {
   none, antiFed, hyperFire, shieldBoost, scrambler, detector, tunneller, disruptor, efficient, extended
 }
-
-enum StockWeapon { basicLaser }
-Map<StockWeapon,Weapon> stockWeapons = {
-  StockWeapon.basicLaser : Weapon( "Basic Laser",
-    baseCost: 100,
-    baseRepairCost: 1.5,
-    powerDraw: .25,
-    dmgDice: 1,
-    dmgDiceSides: 6,
-    dmgBase: 1,
-    dmgType: DamageType.light,
-    ego: WeaponEgo.none,
-    clipRate: 0,
-    energyRate: 20,
-    fireRate: 10,
-    baseAccuracy: .8,
-    dmgRangeConfig: const RangeConfig(idealRange: 1, minRange: 0, maxRange: 4, closeAttenuation: .1, farAttenuation: .7),
-    accuracyRangeConfig: const RangeConfig(idealRange: 1, minRange: 0, maxRange: 4, closeAttenuation: .1, farAttenuation: .33),
-    mass: 10,
-  )};
 
 //enum RangeAttenuation {  linear,exponential }
 
@@ -106,10 +87,41 @@ class Weapon extends ShipSystem {
     required super.baseRepairCost,
     required super.powerDraw,
     required super.mass,
+    super.slot,
     super.rarity,
     super.stability,
     super.repairDifficulty,
   });
+
+  factory Weapon.fromStock(StockWeapon stock) {
+    WeaponData data = stockWeapons[stock]!;
+    return Weapon(
+      data.systemData.name,
+      slot: data.systemData.slot,
+      mass: data.systemData.mass,
+      powerDraw: data.systemData.powerDraw,
+      stability: data.systemData.stability,
+      baseCost: data.systemData.baseCost,
+      baseRepairCost: data.systemData.baseRepairCost,
+      repairDifficulty: data.systemData.repairDifficulty,
+      rarity: data.systemData.rarity,
+      //
+      dmgDice: data.dmgDice,
+      dmgDiceSides: data.dmgDiceSides,
+      dmgBase: data.dmgBase,
+      dmgType: data.dmgType,
+      ego: data.ego,
+      clipRate: data.clipRate,
+      energyRate: data.energyRate,
+      fireRate: data.fireRate,
+      baseAccuracy: data.baseAccuracy,
+      dmgRangeConfig: data.dmgRangeConfig,
+      accuracyRangeConfig: data.accuracyRangeConfig,
+      level: data.level,
+      dmgMult: data.dmgMult,
+      critConfig: data.critConfig,
+    );
+  }
 
   double fire(double dist, math.Random rnd, {Ship? targetShip}) {
     double damage = 0;
@@ -140,4 +152,40 @@ class Weapon extends ShipSystem {
     return dmg * dmgRangeConfig.rangeMultiplier(dist);
   }
 
+}
+
+class WeaponData {
+  final ShipSystemData systemData;
+  final int dmgDice;
+  final int dmgDiceSides;
+  final int dmgBase;
+  final double dmgMult;
+  final DamageType dmgType;
+  final WeaponEgo ego;
+  final int clipRate; //pounds of ammo per round of fire
+  final int energyRate; //units of energy per round of fire
+  final int fireRate; //aut to complete one round of fire
+  final double baseAccuracy; //base chance to hit
+  final RangeConfig dmgRangeConfig;
+  final RangeConfig accuracyRangeConfig;
+  final CritConfig critConfig;
+  final GalaxyLevel level;
+
+  const WeaponData({
+    required this.systemData,
+    required this.dmgDice,
+    required this.dmgDiceSides,
+    required this.dmgBase,
+    required this.dmgType,
+    required this.ego,
+    required this.clipRate,
+    required this.energyRate,
+    required this.fireRate,
+    required this.baseAccuracy,
+    required this.dmgRangeConfig,
+    required this.accuracyRangeConfig,
+    this.level = GalaxyLevel.impulse,
+    this.dmgMult = 1.0,
+    this.critConfig = const CritConfig(),
+  });
 }

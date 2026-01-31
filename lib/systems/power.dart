@@ -16,13 +16,14 @@ class RechargableShipSystem extends ShipSystem {
   double rechargeRate; //% per aut
 
   RechargableShipSystem(super.name, {
-    required super.type,
     required double maxEnergy,
     required this.rechargeRate,
+    required super.type,
     required super.baseCost,
     required super.baseRepairCost,
     required super.mass,
     required super.powerDraw,
+    super.slot,
     super.rarity,
     super.stability,
     super.repairDifficulty,
@@ -61,6 +62,7 @@ class PowerGenerator extends RechargableShipSystem {
     required super.baseRepairCost,
     required super.mass,
     required super.powerDraw,
+    super.slot,
     super.rarity,
     super.stability,
     super.repairDifficulty,
@@ -69,15 +71,33 @@ class PowerGenerator extends RechargableShipSystem {
   factory PowerGenerator.fromStock(StockPower stock) {
     final data = stockPPs[stock]!;
     return PowerGenerator(
-      data.name,
+      data.systemData.name,
+      slot: data.systemData.slot,
+      mass: data.systemData.mass,
+      powerDraw: data.systemData.powerDraw,
+      stability: data.systemData.stability,
+      baseCost: data.systemData.baseCost,
+      baseRepairCost: data.systemData.baseRepairCost,
+      repairDifficulty: data.systemData.repairDifficulty,
+      rarity: data.systemData.rarity,
+      //
       powerType: data.powerType,
       maxEnergy: data.maxEnergy,
       rechargeRate: data.rechargeRate,
-      baseCost: data.baseCost,
-      baseRepairCost: data.baseRepairCost,
-      mass: data.mass,
-      powerDraw: data.powerDraw,
     );
   }
+}
 
+class PowerData {
+  final ShipSystemData systemData;
+  final PowerType powerType;
+  final double maxEnergy;
+  final double rechargeRate;
+
+  const PowerData({
+    required this.systemData,
+    required this.powerType,
+    required this.maxEnergy,
+    required this.rechargeRate,
+  });
 }

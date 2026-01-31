@@ -634,7 +634,7 @@ class FugueModel with ChangeNotifier {
     moveShip(ship, ship.loc.cell.coord.add(v));
   }
 
-  void moveShip(Ship? ship, Coord3D c) {
+  void moveShip(Ship? ship, Coord3D c, {double baseEnergy = 20}) {
     if (ship == null) return;
     glog("Moving ${ship.name} => $c");
     final l = ship.loc;
@@ -646,7 +646,7 @@ class FugueModel with ChangeNotifier {
       if (l is SystemLocation) {
         final engine = ship.subEngine;
         if (engine != null) {
-          double energyUsed = 10 * (1 / engine.efficiency) * dist;
+          double energyUsed = baseEnergy * (1 / engine.efficiency) * dist;
           moving = ship.burnEnergy(energyUsed);
           if (moving) {
             ship.loc = SystemLocation(l.level,destination);
@@ -696,8 +696,7 @@ class FugueModel with ChangeNotifier {
 
   void runUntilNextPlayerTurn() {
     print("Running until next turn...");
-    do {
-      print("Tick: $auTick");
+    do { //print("Tick: $auTick");
       for (Pilot p in activePilots) {
         p.tick();
         Ship ship = pilotMap[p]!;
@@ -710,7 +709,7 @@ class FugueModel with ChangeNotifier {
       }
       auTick++;
       player.tick();
-      playerShip?.tick();
+      playerShip?.tick(); //TODO: factor in player motion?
     } while (!player.ready);
     update();
   }
