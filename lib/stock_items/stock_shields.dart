@@ -9,7 +9,8 @@ final Map<StockShield, ShieldData> stockShields = {
         mass: 50, baseCost: 500, baseRepairCost: 2.5, powerDraw: 2.5),
       shieldType: ShieldType.energon,
       maxEnergy: 200,
-      rechargeRate: .2,
+      rechargeRate: .001,
+      avgRecoveryTime: 100,
   ),
 };
 

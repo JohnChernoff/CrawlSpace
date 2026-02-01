@@ -18,23 +18,23 @@ enum WeaponEgo {
 class RangeConfig {
   final int idealRange;
   final int minRange, maxRange;
-  final double closeAttenuation, farAttenuation;
+  final double closeFalloff, farFalloff;
 
   const RangeConfig({
       required this.idealRange,
       required this.minRange,
       required this.maxRange,
-      required this.closeAttenuation,
-      required this.farAttenuation
+      required this.closeFalloff,
+      required this.farFalloff
   });
 
   double rangeMultiplier(double dist) {
     if (dist < minRange || dist > maxRange) return 0.0;
     if (dist == idealRange) return 1.0;
     if (dist > idealRange) {
-      return math.exp(-farAttenuation * (dist - idealRange));
+      return math.exp(-farFalloff * (dist - idealRange));
     } else {
-      return math.exp(-closeAttenuation * (idealRange - dist));
+      return math.exp(-closeFalloff * (idealRange - dist));
     }
   }
 }
@@ -136,7 +136,7 @@ class Weapon extends ShipSystem {
       double critChance = math.min(
         1.0,
         critConfig.baseChance +
-            overhit * critConfig.accuracyScaling,
+            (overhit * critConfig.accuracyScaling),
       );
       if (rnd.nextDouble() < critChance) {
         damage *= critConfig.severity;
@@ -148,8 +148,11 @@ class Weapon extends ShipSystem {
 
   double _calcDamage(double dist, math.Random rnd) {
     double dmg = dmgBase + Rng.rollDice(dmgDice, dmgDiceSides, rnd) * dmgMult;
+    print("Gross damage: $dmg");
     //TODO: egos, etc.
-    return dmg * dmgRangeConfig.rangeMultiplier(dist);
+    final netDamage = dmg * dmgRangeConfig.rangeMultiplier(dist);
+    print("Net damage: $netDamage");
+    return netDamage;
   }
 
 }

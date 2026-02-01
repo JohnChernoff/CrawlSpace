@@ -14,7 +14,8 @@ enum ActionType {
   planetOrbit(50,1,1,false),
   warp(8,0,0,false),
   energyScoop(72,0,0,false),
-  piracy(100,100,10,false);
+  piracy(100,100,10,false),
+  combat(10,1,1,false);
   final int baseAuts, risk, heat;
   final bool dna;
   const ActionType(this.baseAuts,this.risk, this.heat, this.dna);
@@ -53,13 +54,13 @@ class PilotController extends FugueController {
       }
       fm.auTick++;
       fm.player.tick();
-      fm.playerShip?.tick();
+      fm.playerShip?.tick(fm.rnd);
     } while (!fm.player.ready);
     fm.update();
   }
 
   void npcShipAct(Ship ship) {
-    ship.tick();
+    ship.tick(fm.rnd);
     Pilot? pilot = ship.pilot; if (pilot == null) return;
     if (pilot.ready) {
       fm.movementController.vectorShip(ship, Rng.rndUnitVector(fm.rnd));

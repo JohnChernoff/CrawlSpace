@@ -11,5 +11,6 @@ final Map<StockPower, PowerData> stockPPs = {
     powerType: PowerType.nuclear,
     maxEnergy: 500,
     rechargeRate: 0.02,
+    avgRecoveryTime: 10,
   ),
 };

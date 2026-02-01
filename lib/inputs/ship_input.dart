@@ -125,10 +125,10 @@ class ShipInput extends StatelessWidget with GeneralInputMixin {
         LogicalKeySet(LogicalKeyboardKey.clear):
         const LoiterIntent(),
 
-        LogicalKeySet(LogicalKeyboardKey.keyX, LogicalKeyboardKey.shift):
+        LogicalKeySet(LogicalKeyboardKey.comma):
         const ImpulseIntent(true),
 
-        LogicalKeySet(LogicalKeyboardKey.keyX):
+        LogicalKeySet(LogicalKeyboardKey.period):
         const ImpulseIntent(false),
 
         LogicalKeySet(LogicalKeyboardKey.keyL):

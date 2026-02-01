@@ -98,8 +98,8 @@ class Ship {
     loc.level.addShip(this,loc.cell);
   }
 
-  Iterable<ShipSystem> getInstalledSystems(ShipSystemType type) {
-    return installedSystems.where((s) => s.system?.type == type).map((i) => i.system!);
+  Iterable<ShipSystem> getInstalledSystems(List<ShipSystemType> types) {
+    return installedSystems.where((s) => types.contains(s.system?.type)).map((i) => i.system!);
   }
 
   bool installSystem(ShipSystem s) {
@@ -130,7 +130,7 @@ class Ship {
 
   double get currentMaxShieldStrength {
     double e = 0;
-    for (final shield in getInstalledSystems(ShipSystemType.shield)) {
+    for (final shield in getInstalledSystems([ShipSystemType.shield])) {
       if (shield is Shield && shield.active) {
         e = shield.currentMaxEnergy; if (shield.currentEnergy > 0) return e;
       }
@@ -138,18 +138,19 @@ class Ship {
     return e;
   }
 
-  double get currentShieldStrength {
-    for (final shield in getInstalledSystems(ShipSystemType.shield)) {
+  double get currentShieldStrength => getCurrentShield?.currentEnergy ?? 0;
+  Shield? get getCurrentShield {
+    for (final shield in getInstalledSystems([ShipSystemType.shield])) {
       if (shield is Shield && shield.active) {
-        if (shield.currentEnergy > 0) return shield.currentEnergy;
+        if (shield.currentEnergy > 0) return shield;
       }
     }
-    return 0;
+    return null;
   }
 
   bool burnEnergy(double e) {
-    for (final gen in getInstalledSystems(ShipSystemType.power)) {
-      if (gen is PowerGenerator && gen.active && gen.burn(e)) {
+    for (final gen in getInstalledSystems([ShipSystemType.power])) {
+      if (gen is PowerGenerator && gen.active && gen.burn(e,partial: false) > 0) { //print("Burning: $e");
         return true;
       }
     }
@@ -158,7 +159,7 @@ class Ship {
 
   double getCurrentMaxEnergy({bool raw = false}) {
     double e = 0;
-    for (final gen in getInstalledSystems(ShipSystemType.power)) {
+    for (final gen in getInstalledSystems([ShipSystemType.power])) {
       if (gen is PowerGenerator && gen.active) {
         e += (raw ? gen.rawMaxEnergy : gen.currentMaxEnergy);
       }
@@ -168,7 +169,7 @@ class Ship {
 
   double getCurrentEnergy({bool raw = false}) {
     double e = 0;
-    for (final gen in getInstalledSystems(ShipSystemType.power)) {
+    for (final gen in getInstalledSystems([ShipSystemType.power])) {
       if (gen is PowerGenerator && gen.active) {
         e += (raw ? gen.rawEnergy : gen.currentEnergy);
       }
@@ -176,9 +177,9 @@ class Ship {
     return e;
   }
 
-  Engine? get impEngine => getInstalledSystems(ShipSystemType.engine).whereType<Engine>().where((w) => w.domain == EngineDomain.impulse).firstOrNull;
-  Engine? get subEngine => getInstalledSystems(ShipSystemType.engine).whereType<Engine>().where((w) => w.domain == EngineDomain.sublight).firstOrNull;
-  Engine? get hyperEngine => getInstalledSystems(ShipSystemType.engine).whereType<Engine>().where((w) => w.domain == EngineDomain.hyperspace).firstOrNull;
+  Engine? get impEngine => getInstalledSystems([ShipSystemType.engine]).whereType<Engine>().where((w) => w.domain == EngineDomain.impulse).firstOrNull;
+  Engine? get subEngine => getInstalledSystems([ShipSystemType.engine]).whereType<Engine>().where((w) => w.domain == EngineDomain.sublight).firstOrNull;
+  Engine? get hyperEngine => getInstalledSystems([ShipSystemType.engine]).whereType<Engine>().where((w) => w.domain == EngineDomain.hyperspace).firstOrNull;
 
   double repairHull(double amount) {
     double prevDam = hullDamage;
@@ -189,7 +190,7 @@ class Ship {
   //int repairAll() { return; }
 
   double recharge(double energy) {
-    for (final gen in getInstalledSystems(ShipSystemType.power)) {
+    for (final gen in getInstalledSystems([ShipSystemType.power])) {
       if (gen is PowerGenerator && gen.active) {
         energy -= gen.recharge(energy);
       }
@@ -201,8 +202,12 @@ class Ship {
 
   double get hullStrength => shipClass.maxMass;
 
-  bool takeDamage(int dam) {
-    hullDamage += dam;  return hullDamage >= hullStrength;
+  bool takeDamage(double dam) {
+    Shield? shield = getCurrentShield; if (shield != null) {
+      dam -= shield.burn(dam,partial: true);
+    }
+    hullDamage += dam;
+    return hullDamage >= hullStrength;
   }
 
   String damageReport() {
@@ -213,7 +218,7 @@ class Ship {
     final l = loc;
     if (l is ImpulseLocation && (ship == null || ship.loc.sameLevel(loc))) {
       double dmg = 0;
-      for (final weapon in getInstalledSystems(ShipSystemType.weapon)) {
+      for (final weapon in getInstalledSystems([ShipSystemType.weapon])) {
         if (weapon is Weapon && weapon.active) {
           dmg += weapon.fire(l.cell.coord.distance(target.coord), rnd, targetShip: ship);
         }
@@ -236,23 +241,25 @@ class Ship {
     return (loc is SystemLocation && pilot is Player && loc.level.shipsAt(destination).length > 1);
   }
 
-  void tick() {
-    double recharge = 0;
-    for (final pp in getInstalledSystems(ShipSystemType.power)) {
-      if (pp is PowerGenerator && pp.active && pp.currentEnergy < pp.currentMaxEnergy) {
-        recharge = pp.currentMaxEnergy * pp.rechargeRate * (1-pp.damage); //print("Recharging: $recharge");
-        pp.recharge(recharge);
+  void tick(Random rnd) {
+    for (final rss in getInstalledSystems([ShipSystemType.power,ShipSystemType.shield])) {
+      if (rss is RechargableShipSystem && rss.active && rss.currentEnergy < rss.currentMaxEnergy) {
+        double recharge;
+        if (rss.currentEnergy < 1) {
+          recharge = (rnd.nextInt(rss.avgRecoveryTime) == 0) ? 1 : 0;
+        } else {
+          recharge = rss.currentMaxEnergy * rss.rechargeRate * (1-rss.damage); //print("Recharging: ${rss.name}: $recharge");
+        }
+        rss.recharge(recharge);
       }
     }
-    double totalBurn = 0;
+    //double totalBurn = 0;
     for (final s in installedSystems) {
       if (s.system != null && s.system!.active) {
         double e = s.system!.powerDraw; //print("Burning: $e");
-        burnEnergy(e);
-        totalBurn += e;
+        burnEnergy(e); //totalBurn += e;
       }
-    }
-    //print("$name: Net energy per tick: ${recharge - totalBurn}");
+    } //print("$name: Net energy per tick: ${recharge - totalBurn}");
   }
 
   List<TextBlock> status() {
@@ -270,7 +277,10 @@ class Ship {
       }
     }
     if (targetCoord != null) blocks.add(TextBlock("Scanning Coord: $targetCoord", Colors.orangeAccent, true));
-    if (targetShip != null) blocks.add(TextBlock("Scanning Ship: ${targetShip!.name}", Colors.redAccent, true));
+    if (targetShip != null) {
+      blocks.add(const TextBlock("Scanning Ship: ", Colors.redAccent, true));
+      blocks.addAll(targetShip!.status());
+    }
     return blocks;
   }
 

@@ -20,6 +20,7 @@ class Shield extends RechargableShipSystem {
     required this.shieldType,
     required super.maxEnergy,
     required super.rechargeRate,
+    required super.avgRecoveryTime,
     required super.baseCost,
     required super.baseRepairCost,
     required super.powerDraw,
@@ -45,7 +46,8 @@ class Shield extends RechargableShipSystem {
       //
       shieldType: data.shieldType,
       maxEnergy: data.maxEnergy,
-      rechargeRate: data.rechargeRate
+      rechargeRate: data.rechargeRate,
+      avgRecoveryTime: data.avgRecoveryTime
     );
   }
 }
@@ -54,6 +56,7 @@ class ShieldData {
   final ShipSystemData systemData;
   final double maxEnergy;
   final double rechargeRate;
+  final int avgRecoveryTime;
   final ShieldType shieldType;
   final ShieldEgo ego;
 
@@ -61,6 +64,7 @@ class ShieldData {
     required this.systemData,
     required this.maxEnergy,
     required this.rechargeRate,
+    required this.avgRecoveryTime,
     required this.shieldType,
     this.ego = ShieldEgo.none,
   });

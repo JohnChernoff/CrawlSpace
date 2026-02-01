@@ -16,8 +16,7 @@ class MovementController extends FugueController {
 
   void moveShip(Ship? ship, Coord3D c, {double baseEnergy = 20}) {
     if (ship == null) return;
-    int auts = 0;
-    fm.glog("Moving ${ship.name} => $c");
+    int auts = 0; //fm.glog("Moving ${ship.name} => $c");
     final l = ship.loc;
     GridCell? destination = l.level.map.cells[c];
     if (destination != null) {
@@ -28,9 +27,9 @@ class MovementController extends FugueController {
         ImpulseLocation() => ship.impEngine,
       };
       if (engine != null) {
-        double energyUsed = baseEnergy * (1 / engine.efficiency) * dist;
-        moving = ship.burnEnergy(energyUsed);
-        if (moving) {
+        double energyRequired = baseEnergy * (1 / engine.efficiency) * dist;
+        moving = ship.burnEnergy(energyRequired);
+        if (moving) { //if (ship.playship) print("Moving...");
           if (ship.move(destination)) {
             fm.layerTransitController.createAndEnterImpulse();
             auts = 20;
@@ -38,7 +37,7 @@ class MovementController extends FugueController {
             auts = (engine.baseAutPerUnitTraversal * dist).round(); //print("Auts: $auts");
           }
         } else {
-          fm.msgController.addMsg("Out of energy");
+          if (ship.playship) fm.msgController.addMsg("Out of energy");
         }
       } else {
         fm.msgController.addMsg("Error: no engine");
@@ -48,8 +47,7 @@ class MovementController extends FugueController {
       }
     } else {
       auts = 1;
-    }
-    fm.glog("Moved ship: ${ship.name}");
+    } //fm.glog("Moved ship: ${ship.name}");
     fm.pilotController.action(ship.pilot, ActionType.movement,actionAuts: auts);
   }
 

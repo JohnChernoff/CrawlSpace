@@ -14,10 +14,12 @@ class RechargableShipSystem extends ShipSystem {
   final double _maxEnergy;
   double _currentEnergy;
   double rechargeRate; //% per aut
+  int avgRecoveryTime; //in auts
 
   RechargableShipSystem(super.name, {
     required double maxEnergy,
     required this.rechargeRate,
+    required this.avgRecoveryTime,
     required super.type,
     required super.baseCost,
     required super.baseRepairCost,
@@ -36,10 +38,16 @@ class RechargableShipSystem extends ShipSystem {
     return _currentEnergy - prevEnergy;
   }
 
-  bool burn(double e) {
-    if (currentEnergy >= e) {
-      _currentEnergy -= e; return true;
-    } return false;
+  double burn(double e, {partial = false}) {
+    if (!partial) {
+      if (currentEnergy >= e) {
+        _currentEnergy -= e; return e;
+      } return e;
+    } else {
+      double partialBurn = min(_currentEnergy,e);
+      _currentEnergy -= partialBurn;
+      return partialBurn;
+    }
   }
 
   double get rawMaxEnergy => _maxEnergy;
@@ -58,6 +66,7 @@ class PowerGenerator extends RechargableShipSystem {
     required this.powerType,
     this.ego = PowerEgo.none,
     required super.rechargeRate,
+    required super.avgRecoveryTime,
     required super.baseCost,
     required super.baseRepairCost,
     required super.mass,
@@ -84,6 +93,7 @@ class PowerGenerator extends RechargableShipSystem {
       powerType: data.powerType,
       maxEnergy: data.maxEnergy,
       rechargeRate: data.rechargeRate,
+      avgRecoveryTime: data.avgRecoveryTime
     );
   }
 }
@@ -93,11 +103,13 @@ class PowerData {
   final PowerType powerType;
   final double maxEnergy;
   final double rechargeRate;
+  final int avgRecoveryTime;
 
   const PowerData({
     required this.systemData,
     required this.powerType,
     required this.maxEnergy,
     required this.rechargeRate,
+    required this.avgRecoveryTime
   });
 }

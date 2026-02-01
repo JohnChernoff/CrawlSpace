@@ -9,7 +9,7 @@ final Map<StockWeapon, WeaponData> stockWeapons = {
     systemData: ShipSystemData("Basic Laser",
         mass: 10, baseCost: 100, baseRepairCost: 1.5, powerDraw: .5),
     dmgDice: 1,
-    dmgDiceSides: 6,
+    dmgDiceSides: 60,
     dmgBase: 1,
     dmgType: DamageType.light,
     ego: WeaponEgo.none,
@@ -17,8 +17,8 @@ final Map<StockWeapon, WeaponData> stockWeapons = {
     energyRate: 20,
     fireRate: 10,
     baseAccuracy: .8,
-    dmgRangeConfig: RangeConfig(idealRange: 1, minRange: 0, maxRange: 4, closeAttenuation: .1, farAttenuation: .7),
-    accuracyRangeConfig: RangeConfig(idealRange: 1, minRange: 0, maxRange: 4, closeAttenuation: .1, farAttenuation: .33),
+    dmgRangeConfig: RangeConfig(idealRange: 1, minRange: 0, maxRange: 4, closeFalloff: .1, farFalloff: .7),
+    accuracyRangeConfig: RangeConfig(idealRange: 1, minRange: 0, maxRange: 4, closeFalloff: .1, farFalloff: .33),
   ),
 };
 
