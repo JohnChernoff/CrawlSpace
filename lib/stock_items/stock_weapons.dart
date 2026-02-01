@@ -17,8 +17,8 @@ final Map<StockWeapon, WeaponData> stockWeapons = {
     energyRate: 20,
     fireRate: 10,
     baseAccuracy: .8,
-    dmgRangeConfig: RangeConfig(idealRange: 1, minRange: 0, maxRange: 4, closeFalloff: .1, farFalloff: .7),
-    accuracyRangeConfig: RangeConfig(idealRange: 1, minRange: 0, maxRange: 4, closeFalloff: .1, farFalloff: .33),
+    dmgRangeConfig: RangeConfig(idealRange: 1, minRange: 0, maxRange: 8, closeFalloff: .1, farFalloff: .5),
+    accuracyRangeConfig: RangeConfig(idealRange: 1, minRange: 0, maxRange: 8, closeFalloff: .1, farFalloff: .33),
   ),
 };
 

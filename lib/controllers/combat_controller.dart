@@ -19,7 +19,7 @@ class CombatController extends FugueController {
         if (dam != null && ship.targetShip != null) {
           if (dam > 0) {
             fm.msgController.addMsg("${ship.targetShip} takes $dam damage");
-            ship.targetShip!.takeDamage(dam);
+            if (ship.targetShip!.takeDamage(dam)) explode(ship.targetShip!,[ship]);
           }
           else {
             fm.msgController.addMsg("${ship.name} misses!");
@@ -30,5 +30,23 @@ class CombatController extends FugueController {
         fm.msgController.addMsg("Wrong firing level");
       }
     }
+  }
+
+  void explode(Ship ship, List<Ship> scanningShips) {
+    fm.msgController.addMsg("${ship.name} explodes!");
+    for (final cmp in ship.installedSystems.where((s) => s.system != null)) {
+      if (fm.rnd.nextBool()) {
+        final cell = ship.loc.cell; if (cell is ImpulseCell) {
+          cmp.system!.damage = 50.0 + fm.rnd.nextInt(50);
+          cell.items.add(cmp.system!);
+        }
+      }
+    }
+    fm.pilotMap.remove(ship.pilot);
+    ship.loc.level.map.shipMap[ship.loc.cell]?.remove(ship);
+    for (final s in scanningShips) {
+      s.targetShip = null;
+    }
+    fm.update();
   }
 }

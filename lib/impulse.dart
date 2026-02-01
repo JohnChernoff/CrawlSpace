@@ -2,9 +2,11 @@ import 'package:space_fugue/grid.dart';
 import 'package:space_fugue/ship.dart';
 import 'package:space_fugue/system.dart';
 import 'controllers/scanner_controller.dart';
+import 'item.dart';
 
 class ImpulseCell extends GridCell {
   double nebula, ionStorm, asteroid, gammaRad, wakeTurb;
+  List<Item> items = [];
 
   ImpulseCell(super.coord, {
     this.nebula = 0,
@@ -22,7 +24,8 @@ class ImpulseCell extends GridCell {
   @override
   bool empty(Grid<GridCell> grid, {countPlayer = true}) {
     if (super.hasShips(grid,countPlayer: countPlayer)) return false;
-    if (nebula > 0 || ionStorm > 0) return false;
+    if (nebula > 0 || ionStorm > 0 || asteroid > 0 || gammaRad > 0) return false;
+    if (items.isNotEmpty) return false;
     return true;
   }
 
@@ -31,6 +34,9 @@ class ImpulseCell extends GridCell {
     StringBuffer sb = StringBuffer(toString());
     for (Ship ship in grid.shipMap[this] ?? {}) {
       sb.write("\n$ship");
+    }
+    for (Item item in items) {
+      sb.write("\n${item.name}");
     }
     return sb.toString();
   }
