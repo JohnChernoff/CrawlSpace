@@ -56,11 +56,14 @@ class LayerTransitController extends FugueController {
   }
 
   void createAndEnterImpulse({int gridSize = 8, int minDist = 4}) {
-    fm.glog("Creating impulse map..."); //Entering")
     Ship? playShip = fm.playerShip;
     if (playShip == null) {
       fm.msgController.addMsg("You're not in a ship."); return;
     }
+    if (playShip.loc is! SystemLocation) {
+      fm.msgController.addMsg("Error: ship not at system level"); return;
+    }
+    fm.glog("Creating impulse map..."); //Entering")
     int size = gridSize; //ship gridsize?
     ImpulseLevel impLevel;
     ShipLocation sysLoc = playShip.loc;
@@ -124,8 +127,10 @@ class LayerTransitController extends FugueController {
       } else {
         _exitImpulse(ship, impLoc);
       }
+      fm.pilotController.action(ship.pilot, ActionType.movement);
+    } else {
+      fm.msgController.addMsg("Error: ship not at impulse level");
     }
-    fm.pilotController.action(ship.pilot, ActionType.movement);
   }
 
   void _exitImpulse(Ship ship, ImpulseLocation impLoc) {

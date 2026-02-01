@@ -209,6 +209,7 @@ class MainInput extends StatelessWidget {
             onInvoke: (intent) {
               if (intent.enter) {
                 fm.layerTransitController.createAndEnterImpulse();
+                fm.update();
               } else {
                 fm.layerTransitController.exitImpulse(fm.playerShip);
               }

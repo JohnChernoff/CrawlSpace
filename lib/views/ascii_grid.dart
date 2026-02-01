@@ -41,45 +41,50 @@ class _AsciiGridState extends State<AsciiGrid> {
     if (ship != null) {
       final shipCoord = ship.loc.cell.coord;
       final map = ship.loc.level.map;
-      List<Stack> stacks = [];
+      List<Widget> stacks = [];
       int mapSize = ship.loc.level.map.size;
+      final scannedCell =
+          widget.fugueModel.playerShip?.targetShip?.loc.cell ??
+          widget.fugueModel.scannerController.currentScanSelection;
       for (int y = 0; y < mapSize; y++) {
         for (int x = 0; x < mapSize; x++) {
           GridCell closestCell = map.cells[Coord3D(x, y, 0)]!;
-          final cells = <GridWidget>[];
+          final cellWidgets = <GridWidget>[];
           for (int z = 0; z < mapSize; z++) {
             final cell = map.cells[Coord3D(x, y, z)]!;
             if (showAllCellsOnZPlane) {
-              cells.add(GridWidget(
-                cell,
-                map.shipMap[cell] ?? {},
-                ship,
-              ));
+              cellWidgets.add(GridWidget(cell, ship.loc.level.shipsAt(closestCell), ship));
             }
             else {
-              if (ship.loc.cell.coord == cell.coord) {
-                closestCell = cell; break;
-              }
-              else if (!cell.empty(ship.loc.level.map)) {
-                if (closestCell.empty(ship.loc.level.map) ||
-                shipCoord.distance(cell.coord) <= shipCoord.distance(closestCell.coord)) {
-                  closestCell = cell; //print("Closer cell: $closestCell");
+              if (scannedCell?.coord == cell.coord) { print("Adding scanned coord: ${cell.coord}");
+                cellWidgets.add(GridWidget(cell, ship.loc.level.shipsAt(scannedCell!), ship, color: Colors.white));
+              } else {
+                if (shipCoord == cell.coord) {
+                  closestCell = cell; break;
+                }
+                else if (!cell.empty(ship.loc.level.map)) {
+                  if (closestCell.empty(ship.loc.level.map) ||
+                      shipCoord.distance(cell.coord) < shipCoord.distance(closestCell.coord)) {
+                    closestCell = cell; //print("Closer cell: $closestCell");
+                  }
                 }
               }
             }
           }
+          if (!showAllCellsOnZPlane && (cellWidgets.isEmpty || cellWidgets.first.cell.coord.distance(shipCoord) > closestCell.coord.distance(shipCoord))) {
+            cellWidgets.add(GridWidget(closestCell, ship.loc.level.shipsAt(closestCell), ship));
+            if (cellWidgets.length > 1) print("adding closest coord: ${closestCell.coord}");
+          } else {
+            cellWidgets.sort((a, b) => a.cell.coord.z.compareTo(b.cell.coord.z)); // IMPORTANT: back → front
+          }
           //print("Closest Cell: $closestCell");
-          // IMPORTANT: back → front
-          cells.sort((a, b) => a.cell.coord.z.compareTo(b.cell.coord.z));
           stacks.add(Stack(
             alignment: Alignment.center,
-            children: showAllCellsOnZPlane
-                ? cells
-                : [GridWidget(closestCell, map.shipMap[closestCell] ?? {}, ship,)],
+            children: cellWidgets,
           ));
         }
       }
-      return buildInputLayer(child: Container(color: Colors.white, child: GridView.count(
+      return buildInputLayer(child: Container(color: Colors.black, child: GridView.count(
         crossAxisCount: mapSize,
         children: stacks,
       )),fugueModel: widget.fugueModel);
@@ -117,14 +122,11 @@ Widget buildInputLayer({required Widget child, required FugueModel fugueModel}) 
 }
 
 class GridWidget extends StatefulWidget {
-  static const asciiStyle = TextStyle(
-    fontFamily: 'Courier',
-    height: 1.0,
-  );
+  final Color? color;
   final Ship playShip;
   final Set<Ship> ships;
   final GridCell cell;
-  const GridWidget(this.cell,this.ships,this.playShip, {super.key});
+  const GridWidget(this.cell,this.ships,this.playShip, {super.key, this.color});
 
   @override
   State<StatefulWidget> createState() => GridWidgetState();
@@ -137,8 +139,7 @@ class GridWidgetState extends State<GridWidget> {
     final level = widget.playShip.loc.level;
     final maxZ = level.map.size - 1;
     final z = widget.cell.coord.z;
-    // normalized 0.0 → 1.0
-    final t = z / maxZ;
+    final t = z / maxZ; // normalized 0.0 → 1.0
     final depthFactor = 0.3 + 0.7 * t;
     final opacity = 0.35 + 0.65 * t;
     final offsetY = (1 - t) * 24; // stronger offset for ASCII
@@ -147,7 +148,6 @@ class GridWidgetState extends State<GridWidget> {
     final maxDist = sqrt(3) * level.map.size; // diagonal of grid
     // Normalize 0.0 → 1.0, closer = higher value
     final proximityFactor = 1.0 - (distFromPlayer / maxDist).clamp(0, 1);
-    //print("Prox: $proximityFactor");
     // Color intensity based on proximity
     final textColor = Color.lerp(
         Colors.black,  // far away
@@ -160,13 +160,13 @@ class GridWidgetState extends State<GridWidget> {
       final baseFontSize = cellSize * 0.8; // tweak 0.7–0.9
       final fontSize = baseFontSize * depthFactor;
       return Container(decoration: BoxDecoration(
-          color: Colors.black,
+          //color: Colors.black,
           border: !widget.cell.empty(level.map) && zDistFromPlayer == 0
               ? Border.all(color: Colors.white, width: 1)
               : null
       ), child:  Center(
         child: Opacity(
-          opacity: opacity,
+          opacity: widget.color == null ? opacity : 1,
           child: Transform.translate(
             offset: Offset(0, offsetY),
             child: Transform.scale(
@@ -185,7 +185,7 @@ class GridWidgetState extends State<GridWidget> {
       fontFamily: 'FixedSys',
       height: 1.0,
       fontSize: fontSize,
-      color: color,
+      color: widget.color ?? color,
     );
     List<Widget> stack = [];
     final cell = widget.cell;
@@ -201,11 +201,7 @@ class GridWidgetState extends State<GridWidget> {
       if (cell.blackHole) stack.add(Text("-",style: style));
     }
     if (widget.ships.isNotEmpty) {
-      stack.add(Text(widget.ships.first.npc
-          ? "h"
-          : "@",
-        style: style,
-      ));
+      stack.add(Text(widget.ships.first.npc ? "h" : "@", style: style));
     }
     return Stack(children: stack);
   }

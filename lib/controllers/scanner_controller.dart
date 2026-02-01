@@ -84,7 +84,6 @@ class ScannerController extends FugueController {
         }
       }
     }
-
     fm.update();
   }
 
@@ -93,10 +92,11 @@ class ScannerController extends FugueController {
     fm.update();
   }
 
-  void targetShipFromScannedCell() {
-    if (currentScanSelection == null || !currentScan.contains(currentScanSelection)) return;
+  void targetShipFromScannedCell({GridCell? currCell}) {
+    final scannedCell = currCell ?? currentScanSelection;
+    if (scannedCell == null || !currentScan.contains(scannedCell)) return;
     Ship? playShip = fm.playerShip; if (playShip != null) {
-      final ships = playShip.loc.level.shipsAt(currentScanSelection!);
+      final ships = playShip.loc.level.shipsAt(scannedCell);
       if (ships.length > 1) {
         currentScannedShipIndex++;
         if (currentScannedShipIndex >= ships.length) currentScannedShipIndex = 0;
@@ -123,6 +123,8 @@ class ScannerController extends FugueController {
         scannerMode = ScannerMode.values.elementAt(ScannerMode.values.length - 1);
       }
     }
+    currentScanSelection = null;
+    currentScannedShipIndex = 0;
     fm.update();
   }
 
