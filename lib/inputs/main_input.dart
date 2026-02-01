@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../controllers/menu_controller.dart';
+import '../controllers/scanner_controller.dart';
 import '../coord_3d.dart';
 import '../fugue_model.dart';
 
@@ -164,7 +166,7 @@ class MainInput extends StatelessWidget {
       actions: {
         DirectionIntent: CallbackAction<DirectionIntent>(
           onInvoke: (intent) { //print("Moving ship");
-            fm.vectorShip(
+            fm.movementController.vectorShip(
               fm.playerShip,
               Coord3D(intent.dx, intent.dy, intent.dz),
             );
@@ -173,65 +175,65 @@ class MainInput extends StatelessWidget {
         ),
         OpenInventoryIntent: CallbackAction(
           onInvoke: (_) {
-            fm.inputMode = InputMode.inventory;
+            fm.menuController.inputMode = InputMode.inventory;
             return null;
           },
         ),
         OpenPlanetMenuIntent: CallbackAction(
           onInvoke: (_) {
-            fm.visitPlanet();
+            fm.menuController.visitPlanet();
             return null;
           },
         ),
         HyperSpaceIntent: CallbackAction(
           onInvoke: (_) {
-            fm.hyperSpaceMenu();
+            fm.menuController.hyperSpaceMenu();
             return null;
           },
         ),
         ScannerModeIntent: CallbackAction<ScannerModeIntent>(
           onInvoke: (intent) {
             if (intent.mode == null) {
-              fm.toggleScannerMode(forwards: intent.forwards);
+              fm.scannerController.toggleScannerMode(forwards: intent.forwards);
             }
             return null;
           }
         ),
         LoiterIntent: CallbackAction<LoiterIntent>(
             onInvoke: (_) {
-              fm.loiter();
+              fm.movementController.loiter();
               return null;
             }
         ),
         ImpulseIntent: CallbackAction<ImpulseIntent>(
             onInvoke: (intent) {
               if (intent.enter) {
-                fm.createAndEnterImpulse();
+                fm.layerTransitController.createAndEnterImpulse();
               } else {
-                fm.exitImpulse(fm.playerShip);
+                fm.layerTransitController.exitImpulse(fm.playerShip);
               }
               return null;
             }
         ),
         ScannerSelectionIntent: CallbackAction<ScannerSelectionIntent>(
             onInvoke: (intent) {
-              fm.selectScannedObject(intent.up);
+              fm.scannerController.selectScannedObject(intent.up);
               return null;
             }
         ),
         ScannerTargetIntent: CallbackAction<ScannerTargetIntent>(
             onInvoke: (intent) {
               if (intent.ship) {
-                fm.targetShipFromScannedCell();
+                fm.scannerController.targetShipFromScannedCell();
               } else {
-                fm.targetScannedObject(fm.playerShip,fm.currentScanSelection);
+                fm.scannerController.targetScannedObject(fm.playerShip,fm.scannerController.currentScanSelection);
               }
               return null;
             }
         ),
         FireIntent: CallbackAction<FireIntent>(
             onInvoke: (_) {
-              fm.fire(fm.playerShip);
+              fm.combatController.fire(fm.playerShip);
               return null;
             }
         ),

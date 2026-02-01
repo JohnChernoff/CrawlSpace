@@ -50,12 +50,12 @@ class PlanetInput extends StatelessWidget {
       actions: {
         PlanetActionIntent: CallbackAction<PlanetActionIntent>(
             onInvoke: (intent) {
-              fm.addMsg("You selected: ${intent.action}");
+              fm.msgController.addMsg("You selected: ${intent.action}");
               return null;
             }),
         LaunchIntent: CallbackAction<LaunchIntent>(
             onInvoke: (_) {
-              fm.launch();
+              fm.planetsideController.launch();
               return null;
             }),
       },

@@ -7,6 +7,7 @@ import 'package:space_fugue/inputs/planet_input.dart';
 import 'package:space_fugue/ship.dart';
 import 'package:space_fugue/system.dart';
 
+import '../controllers/menu_controller.dart';
 import '../fugue_model.dart';
 import '../inputs/main_input.dart';
 
@@ -88,7 +89,7 @@ class _AsciiGridState extends State<AsciiGrid> {
 }
 
 Widget buildInputLayer({required Widget child, required FugueModel fugueModel}) {
-  switch (fugueModel.inputMode) {
+  switch (fugueModel.menuController.inputMode) {
     case InputMode.main:
       return MainInput(child,fugueModel);
     case InputMode.inventory:

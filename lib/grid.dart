@@ -1,6 +1,6 @@
 import 'dart:math';
-import 'package:space_fugue/fugue_model.dart';
 import 'package:space_fugue/ship.dart';
+import 'controllers/scanner_controller.dart';
 import 'coord_3d.dart';
 
 class Level {

@@ -1,6 +1,6 @@
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
-import 'message_worker.dart';
+import '../controllers/message_controller.dart';
 
 class MessageLog extends StatefulWidget {
   final ValueNotifier<IList<Message>> messageNotifier;
@@ -55,7 +55,7 @@ class MessageLogState extends State<MessageLog> {
         return Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(widget.postGame ? 1.0 : 0.6),
+            color: Colors.black.withValues(alpha: widget.postGame ? 1.0 : 0.6),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.grey.shade700),
           ),

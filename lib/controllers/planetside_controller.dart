@@ -1,0 +1,164 @@
+import 'package:space_fugue/controllers/fugue_controller.dart';
+import 'package:space_fugue/controllers/pilot_controller.dart';
+import '../agent.dart';
+import '../descriptors.dart';
+import '../planet.dart';
+import '../player.dart';
+import '../system.dart';
+import 'audio_controller.dart';
+import 'menu_controller.dart';
+
+class PlanetsideController extends FugueController {
+  PlanetsideController(super.fm);
+
+  void goPlan(Planet? planet) { //print("Visiting: $planet");
+    fm.audioController.newTrack(MusicalMood.planet);
+    OrbitResult result = OrbitResult.newOrbit; //player.newOrbit(planet);
+    if (result == OrbitResult.insufficientEnergy) {
+      fm.outOfEnergy();
+    } else if (result == OrbitResult.newOrbit) {
+      if (planet == fm.galaxy.homeWorld) {
+        fm.endGame("You complete your mission!",home: true);
+      } else {
+        if (planet != null) {
+          //if (player.techLevel() > 50 ? !pirateCheck(numPirates: 1) : !pirateCheck()) return;
+          fm.msgController.addMsg("Orbiting ${planet.name}");
+          fm.msgController.addMsg(planet.description);
+          if (fm.player.tradeTarget?.planet == planet) {
+            fm.msgController.addMsg("You deliver your cargo.  Reward: ${fm.player.tradeTarget?.reward}");
+            fm.player.credits += fm.player.tradeTarget?.reward ?? 0;
+            fm.player.tradeTarget = null;
+          }
+        }
+        fm.pilotController.action(fm.player,ActionType.planetOrbit);
+      }
+    } else {
+      fm.msgController.addMsg("Maintaining orbit around ${planet?.name ?? 'nothing'}",updateAfter: true);
+    }
+  }
+
+  void launch() {
+    fm.player.planet = null; //still orbiting planet
+    fm.menuController.inputMode = InputMode.main;
+    fm.msgController.addMsg("Launching...");
+    fm.pilotController.action(fm.player,ActionType.planetLaunch);
+  }
+
+  void broadcast() {
+    if (!fm.player.starOne) {
+      fm.msgController.addMsg("You must first find Star One.");
+    }
+    else if (fm.player.credits < fm.costBroadcast) {
+      fm.msgController.addMsg("You can't afford this (${fm.costBroadcast} credits).");
+    } else {
+      fm.msgController.addMsg("You broadcast a message of insurrection against the Galactic Federation");
+      fm.player.broadcasts++;
+      fm.player.credits -= fm.costBroadcast;
+      propaganda(fm.player.system, 0, 4, {fm.player.system});
+      fm.heat(25,sighted: fm.player.system);
+    }
+  }
+
+  void propaganda(System system, int level, int depth, Set<System> systems) {
+    fm.msgController.addMsg("Undermining system: ${system.name}");
+    if (level < depth) {
+      system.fedLvl = (system.fedLvl / (depth - level)).floor();
+      for (System link in system.links) {
+        if (systems.add(link)) {
+          propaganda(link, level + 1, depth, systems);
+        }
+      }
+    }
+  }
+
+  void tradeMission() {
+    if (fm.playerShip == null) {
+      fm.msgController.addMsg("You're not in a ship!");
+    } else if (fm.player.tradeTarget?.source == fm.player.planet) {
+      fm.msgController.addMsg("You already have a mission from this planet.");
+    } else {
+      List<System> path = [];
+      int steps = 3;
+      int r = 100; //(player.techLevel() / 10).ceil() * playerShip!.cargo.value;
+      int reward = (r/2).floor() + fm.rnd.nextInt(r);
+      Planet? planet; int tries = 0;
+      while (planet == null && tries++ < 100) {
+        path = [fm.player.system];
+        planet = fm.createTradePlanet(path, steps);
+      }
+      if (planet != null) {
+        fm.player.tradeTarget = TradeTarget(planet, fm.player.planet, reward);
+        fm.msgController.addMsg("${planet.name} is in desperate need of ${rndEnum(Goods.values.where((g) => g != planet?.export))}, "
+            "reward: $reward. Route: ${fm.pathList(path)}");
+      } else {
+        fm.msgController.addMsg("Failed to find planet in route: ${fm.pathList(path)}");
+      }
+      fm.pilotController.action(fm.player,ActionType.planet, mod: 1.25);
+    }
+  }
+
+  void spy() {
+    for (Agent agent in fm.agents) {
+      if (agent.tracked == 0) {
+        agent.track((fm.player.techLevel() / 8).floor() * (fm.techCheck(1) ? 2 : 1));
+        List<System>? path = fm.galaxyGraph.shortestPath(fm.player.system, agent.system);
+        fm.msgController.addMsg("${agent.name} is ${fm.jumps(path)} jumps away (tracking for ${agent.tracked} jumps)");
+      }
+    }
+    fm.pilotController.action(fm.player,ActionType.planet);
+  }
+
+  void hack() { //find starOne
+    List<System>? path = fm.galaxyGraph.shortestPath(fm.player.system, fm.starOne());
+    fm.msgController.addMsg("Star One is ${fm.jumps(path)} jumps away");
+    fm.msgController.addMsg("Next step: ${fm.nextSystemInPath(path)?.name}");
+    fm.pilotController.action(fm.player,ActionType.planet,mod: 1.5);
+  }
+
+  void scout() {
+    int depth = (fm.player.techLevel() / 16).ceil();
+    fm.msgController.addMsg("Scouting nearby systems (depth: $depth)...");
+    fm.explore(fm.player.system, depth);
+    fm.pilotController.action(fm.player,ActionType.planet);
+  }
+
+  void bioHack({int amount = 1}) {
+    if (fm.player.dnaScram < Player.maxDna) {
+      if (fm.player.credits >= fm.costBioHack) {
+        fm.player.credits -= fm.costBioHack;
+        fm.player.dnaScram++;
+        fm.msgController.addMsg("Dna scrambled (mutation: ${fm.player.dnaScram})");
+        fm.pilotController.action(fm.player,ActionType.planet,mod: 2);
+      } else {
+        fm.msgController.addMsg("You can't afford this (cost: ${fm.costBioHack} credits).");
+      }
+    } else {
+      fm.msgController.addMsg("Your system cannot handle further modification.");
+    }
+  }
+
+  void shoplift() {
+    if (fm.player.planet == null) return;
+    bool success = fm.rnd.nextInt(300) < (fm.player.thievery + 200);
+    if (success) {
+      int n = ((fm.player.techLevel()/3) + (fm.player.planet!.commLvl.index * 12)).floor();
+      int c = fm.rnd.nextInt(n);
+      fm.player.credits += c;
+      fm.msgController.addMsg("You stole $c credits.");
+      fm.pilotController.action(fm.player,ActionType.planet);
+    }
+    else {
+      fm.heat((2 * (fm.player.fedLevel()/12)).ceil());
+      int penalty = fm.rnd.nextInt(67) + 33;
+      int t = fm.rnd.nextInt(3) + 2;
+      fm.msgController.addMsg("You've been caught!  Penalty: $penalty credits and $t turns in jail.");
+      fm.player.credits -= penalty;
+      if (fm.player.credits < 0) {
+        int t2 = (fm.player.credits.abs() / 20).ceil();
+        fm.msgController.addMsg("You can't afford the fine! Penalty: $t2 extra turns in jail.");
+        fm.player.credits = 0;
+      }
+      fm.pilotController.action(fm.player,ActionType.planet,actionAuts: t * 100);
+    }
+  }
+}

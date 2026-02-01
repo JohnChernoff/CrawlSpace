@@ -5,7 +5,7 @@ class HyperSpaceInput extends LetterMenuInput {
 
   @override
   void handleLetter(String letter) {
-    fm.hyperSpace(letter);
+    fm.menuController.hyperSpace(letter);
   }
 
 }

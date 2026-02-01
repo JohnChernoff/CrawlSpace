@@ -1,4 +1,5 @@
 import 'package:space_fugue/impulse.dart';
+import 'package:space_fugue/ship.dart';
 import 'package:space_fugue/system.dart';
 import 'grid.dart';
 
@@ -8,6 +9,8 @@ sealed class ShipLocation {
 
   Level get level => _level;
   GridCell get cell => _cell;
+
+  Set<Ship> get ships => level.shipsAt(cell);
 
   bool sameLevel(ShipLocation? loc) {
     if (runtimeType != loc.runtimeType) return false;

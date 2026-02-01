@@ -41,7 +41,8 @@ class Ship {
   ShipLocation loc;
   int impulseMapSize = 8;
   Set<Item> inventory = {};
-  bool get npc => pilot is! Player;
+  bool get playship => pilot is Player;
+  bool get npc => !playship;
   Ship? targetShip;
   Ship? interceptShip;
   Coord3D? targetCoord;

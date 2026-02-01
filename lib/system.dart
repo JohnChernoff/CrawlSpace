@@ -1,10 +1,10 @@
 import 'dart:collection';
 import 'dart:math';
 import 'dart:ui';
-import 'package:space_fugue/fugue_model.dart';
 import 'package:space_fugue/planet.dart';
 import 'package:space_fugue/rng.dart';
 import 'package:space_fugue/ship.dart';
+import 'controllers/scanner_controller.dart';
 import 'coord_3d.dart';
 import 'grid.dart';
 import 'impulse.dart';

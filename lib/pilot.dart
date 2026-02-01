@@ -1,7 +1,6 @@
 import 'dart:math';
-
-import 'package:space_fugue/actions.dart';
 import 'package:space_fugue/system.dart';
+import 'controllers/pilot_controller.dart';
 
 enum AttribType {
   int,wis,str,dex,cha,con

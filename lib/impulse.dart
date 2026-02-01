@@ -1,7 +1,7 @@
-import 'package:space_fugue/fugue_model.dart';
 import 'package:space_fugue/grid.dart';
 import 'package:space_fugue/ship.dart';
 import 'package:space_fugue/system.dart';
+import 'controllers/scanner_controller.dart';
 
 class ImpulseCell extends GridCell {
   double nebula, ionStorm, asteroid, gammaRad, wakeTurb;

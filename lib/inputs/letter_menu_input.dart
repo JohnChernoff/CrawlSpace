@@ -24,7 +24,7 @@ abstract class LetterMenuInput extends StatelessWidget {
 
     // Handle escape/cancel
     if (event.logicalKey == LogicalKeyboardKey.keyX) {
-      fm.cancelToMain();
+      fm.menuController.cancelToMain();
       return KeyEventResult.handled;
     }
 

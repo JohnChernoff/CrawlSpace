@@ -1,8 +1,20 @@
 import 'dart:async';
 import 'dart:collection';
-import 'dart:ui';
-import 'package:flutter/foundation.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
+import 'package:space_fugue/controllers/fugue_controller.dart';
+import 'package:flutter/material.dart';
+
+class MessageController extends FugueController {
+  final msgWorker = MessageQueueWorker();
+
+  MessageController(super.fm);
+
+  void addMsg(String txt, {int delay = 100, bool updateAfter = false, Color color = Colors.white}) {
+    msgWorker.addMsg(Message(text: txt, timestamp: fm.starDate(),color: color),delay: delay);
+    if (updateAfter) fm.update();
+  }
+
+}
 
 class Message {
   final String text;

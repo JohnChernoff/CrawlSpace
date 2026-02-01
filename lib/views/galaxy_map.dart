@@ -7,10 +7,10 @@ import 'package:flutter_force_directed_graph/widget/force_directed_graph_widget.
 import 'package:space_fugue/fugue_model.dart';
 import 'package:space_fugue/views/galaxy_view.dart';
 import 'package:space_fugue/system.dart';
-import 'agent.dart';
-import 'galaxy.dart';
-import 'main.dart';
-import 'options.dart';
+import '../agent.dart';
+import '../galaxy.dart';
+import '../main.dart';
+import '../options.dart';
 
 class GalaxyMap extends StatefulWidget {
   final FugueModel fugueModel;
@@ -71,7 +71,7 @@ class GalaxyMapState extends State<GalaxyMap> {
           child: ForceDirectedGraphWidget(
             controller: _controller,
             nodesBuilder: (context, data) { //print("Building: ${data.name}");
-              return  InkWell(onTap: (fm.gameOver) ? null : () => fm.controller.goLink(data),
+              return  InkWell(onTap: (fm.gameOver) ? null : () => fm.layerTransitController.newSystem(fm.player,data),
                   child: fugueOptions.getBool(FugueOption.fancyGraph) ? fancyNode(data) : boxSystem(data)
               ); //check if currently on a planet;
             },
