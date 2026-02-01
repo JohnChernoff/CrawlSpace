@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'fugue_model.dart';
+import '../fugue_model.dart';
 
 abstract class LetterMenuInput extends StatelessWidget {
   final Widget child;

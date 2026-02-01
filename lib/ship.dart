@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:space_fugue/coord_3d.dart';
 import 'package:space_fugue/fugue_model.dart';
 import 'package:space_fugue/pilot.dart';
 import 'package:space_fugue/player.dart';
@@ -12,6 +13,7 @@ import 'package:space_fugue/systems/shields.dart';
 import 'package:space_fugue/stock_items/stock_power.dart';
 import 'package:space_fugue/systems/ship_system.dart';
 import 'package:space_fugue/systems/weapons.dart';
+import 'grid.dart';
 import 'impulse.dart';
 import 'item.dart';
 import 'location.dart';
@@ -40,6 +42,10 @@ class Ship {
   int impulseMapSize = 8;
   Set<Item> inventory = {};
   bool get npc => pilot is! Player;
+  Ship? targetShip;
+  Ship? interceptShip;
+  Coord3D? targetCoord;
+  Coord3D? interceptCoord;
 
   Ship(this.name, this.owner, {
     required this.shipClass,
@@ -87,7 +93,8 @@ class Ship {
       inventory.add(w);
       installSystem(w);
     }
-    loc.level.map.addShip(this,loc.cell);
+
+    loc.level.addShip(this,loc.cell);
   }
 
   Iterable<ShipSystem> getInstalledSystems(ShipSystemType type) {
@@ -201,17 +208,31 @@ class Ship {
     return "${hullStrength - hullDamage} hull remaining";
   }
 
-  double? fireWeapon(ImpulseCell target, Random rnd) {
+  double? fireWeapon(ImpulseCell target, Random rnd, {Ship? ship}) {
     final l = loc;
-    if (l is ImpulseLocation) {
+    if (l is ImpulseLocation && (ship == null || ship.loc.sameLevel(loc))) {
       double dmg = 0;
       for (final weapon in getInstalledSystems(ShipSystemType.weapon)) {
         if (weapon is Weapon && weapon.active) {
-          dmg += weapon.fire(l.cell.coord.distance(target.coord), rnd, targetShip: l.level.map.shipMap[target]?.first); //multiple ships at loc?
+          dmg += weapon.fire(l.cell.coord.distance(target.coord), rnd, targetShip: ship);
         }
       }
       return dmg;
     } return null;
+  }
+
+  //true if intercepted a ship in a sector
+  bool move(GridCell destination, {bool toSystem = false, ImpulseLevel? impLevel }) {
+    loc.level.removeShip(this);
+
+    ShipLocation l = loc; loc = switch(l) {
+      SystemLocation() => impLevel != null ? ImpulseLocation(l,impLevel,destination) : SystemLocation(l.level,destination),
+      ImpulseLocation() => toSystem? l.systemLoc : ImpulseLocation(l.systemLoc,l.level,destination),
+    };
+
+    loc.level.addShip(this, destination);
+
+    return (loc is SystemLocation && pilot is Player && loc.level.shipsAt(destination).length > 1);
   }
 
   void tick() {
@@ -247,6 +268,8 @@ class Ship {
         blocks.add(TextBlock("${s.system!.name} ${s.system!.active ? '+' : '-'}",Colors.white,true));
       }
     }
+    if (targetCoord != null) blocks.add(TextBlock("Scanning Coord: $targetCoord", Colors.orangeAccent, true));
+    if (targetShip != null) blocks.add(TextBlock("Scanning Ship: ${targetShip!.name}", Colors.redAccent, true));
     return blocks;
   }
 

@@ -1,5 +1,6 @@
 import 'package:space_fugue/fugue_model.dart';
 import 'package:space_fugue/grid.dart';
+import 'package:space_fugue/ship.dart';
 import 'package:space_fugue/system.dart';
 
 class ImpulseCell extends GridCell {
@@ -20,14 +21,18 @@ class ImpulseCell extends GridCell {
 
   @override
   bool empty(Grid<GridCell> grid, {countPlayer = true}) {
-    // TODO: implement empty
-    throw UnimplementedError();
+    if (super.hasShips(grid,countPlayer: countPlayer)) return false;
+    if (nebula > 0 || ionStorm > 0) return false;
+    return true;
   }
 
   @override
   String toScannerString(Grid<GridCell> grid) {
-    // TODO: implement toScannerString
-    throw UnimplementedError();
+    StringBuffer sb = StringBuffer(toString());
+    for (Ship ship in grid.shipMap[this] ?? {}) {
+      sb.write("\n$ship");
+    }
+    return sb.toString();
   }
 
 }

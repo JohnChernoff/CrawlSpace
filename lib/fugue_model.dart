@@ -16,6 +16,7 @@ import 'package:space_fugue/rng.dart';
 import 'package:space_fugue/ship.dart';
 import 'package:space_fugue/stock_items/stock_ships.dart';
 import 'package:space_fugue/system.dart';
+import 'package:space_fugue/systems/engines.dart';
 import 'actions.dart';
 import 'agent.dart';
 import 'coord_3d.dart';
@@ -77,7 +78,15 @@ class FugueModel with ChangeNotifier {
   Map<Pilot,Ship> pilotMap = {};
   Set<Pilot> pilots = {};
   ImpulseLocation? get playerImpulseLoc => pilotImpulseLoc(player);
-  ImpulseLocation? pilotImpulseLoc(Pilot p) => pilotMap[p]?.loc as ImpulseLocation;
+  ImpulseLocation? pilotImpulseLoc(Pilot p) {
+    final l = pilotMap[p]?.loc;
+    if (l is ImpulseLocation) {
+      return l;
+    } else {
+      return null;
+    }
+  }
+
   Ship? get playerShip => pilotMap[player];
   Iterable<Pilot> get activePilots => pilots.where((p) => pilotMap[p] != null);
   Iterable<Pilot> get availablePilots => activePilots.where((p) => p.auCooldown == 0);
@@ -85,6 +94,9 @@ class FugueModel with ChangeNotifier {
   InputMode inputMode = InputMode.main;
   Map<String,System> currentLinkMap = {};
   ScannerMode scannerMode = ScannerMode.all;
+  List<GridCell> currentScan = [];
+  GridCell? currentScanSelection;
+  int currentScannedShipIndex = 0;
 
   FugueModel(this.galaxy,String playerName) {
     controller = FugueController(this);
@@ -179,14 +191,14 @@ class FugueModel with ChangeNotifier {
     Ship? ship = playerShip; if (ship == null) {
       blocks.add(const TextBlock("No ship!",Colors.red,true));
     } else {
-      blocks.add(TextBlock("System: ${ship.pilot!.system.name}",Colors.cyan,true));
+      blocks.add(TextBlock(ship.loc.toString(),Colors.cyan,true));
       blocks.addAll(ship.status());
     }
     return blocks;
   }
 
   List<TextBlock> scannerText({ScannerMode? mode}) {
-    List<TextBlock> blocks = [];
+    List<TextBlock> blocks = []; currentScan.clear();
     blocks.add(const TextBlock("Scanner mode: ",Colors.white,false));
     blocks.add(TextBlock(scannerMode.name, scannerMode.color, true));
     Ship? ship = playerShip; if (ship == null) {
@@ -197,11 +209,51 @@ class FugueModel with ChangeNotifier {
           .sorted((c1,c2) => c1.coord.distance(ship.loc.cell.coord).compareTo(c2.coord.distance(ship.loc.cell.coord)));
       for (GridCell cell in cells) {
         if (!cell.empty(ship.loc.level.map)) {
-          blocks.add(TextBlock(cell.toScannerString(ship.loc.level.map), scannerMode.color, true));
+          blocks.add(TextBlock(cell.toScannerString(ship.loc.level.map), currentScanSelection == cell ? Colors.yellowAccent : Colors.green, true));
+          currentScan.add(cell);
         }
       }
     }
     return blocks;
+  }
+
+  void selectScannedObject(bool up) {
+      if (currentScanSelection == null || !currentScan.contains(currentScanSelection)) {
+        currentScanSelection = currentScan.firstOrNull;
+      } else {
+        for (int i=0;i<currentScan.length;i++) {
+          if (currentScanSelection == currentScan.elementAt(i)) {
+            int newIndex = i + (up ? -1 : 1);
+            if (newIndex >= currentScan.length) newIndex = 0;
+            if (newIndex < 0) newIndex = currentScan.length - 1;
+            currentScanSelection = currentScan.elementAt(newIndex);
+            break;
+          }
+        }
+      }
+
+      notifyListeners();
+  }
+
+  void targetScannedObject(Ship? ship, GridCell? cell) {
+    if (ship != null && cell != null) ship.targetCoord = cell.coord;
+    notifyListeners();
+  }
+
+  void targetShipFromScannedCell() {
+    if (currentScanSelection == null || !currentScan.contains(currentScanSelection)) return;
+    Ship? playShip = playerShip; if (playShip != null) {
+      final ships = playShip.loc.level.shipsAt(currentScanSelection!);
+      if (ships.length > 1) {
+        currentScannedShipIndex++;
+        if (currentScannedShipIndex >= ships.length) currentScannedShipIndex = 0;
+        playShip.targetShip = ships.elementAt(currentScannedShipIndex);
+      }
+      else {
+        playShip.targetShip = ships.firstOrNull;
+      }
+    }
+    notifyListeners();
   }
 
   void toggleScannerMode({bool forwards = true}) {
@@ -318,7 +370,7 @@ class FugueModel with ChangeNotifier {
       final sysLoc = ship.loc;
       if (sysLoc is SystemLocation) {
         if (sysLoc.cell.starClass != null) {
-          sysLoc.level.map.removeShip(ship);
+          sysLoc.level.removeShip(ship);
           final stars = system.map.cells.values.where((c) => c is SectorCell && c.starClass != null);
           ship.loc = SystemLocation(system, stars.first);
           pilot.system = system;
@@ -570,12 +622,13 @@ class FugueModel with ChangeNotifier {
     pilotAction(ship.pilot,ActionType.warp);
   }
 
-  void createImpulse({int gridSize = 8, int minDist = 4}) {
+  void createAndEnterImpulse({int gridSize = 8, int minDist = 4}) {
+    print("Creating impulse map..."); //Entering")
     Ship? playShip = playerShip;
     if (playShip == null) {
       addMsg("You're not in a ship."); return;
     }
-    int size = gridSize;
+    int size = gridSize; //ship gridsize?
     ImpulseLevel impLevel;
     ShipLocation l = playShip.loc;
     if (l is SystemLocation) {
@@ -598,24 +651,14 @@ class FugueModel with ChangeNotifier {
         impLevel = ImpulseLevel(ImpulseMap(size,cells),l.cell);
         l.level.impMapCache.putIfAbsent(l.cell, () => impLevel);
       }
-
-      final ships = l.level.map.shipMap[l.cell]?.toList();
-      if (ships != null && ships.isNotEmpty) {
-        ships.remove(playShip);
-        final playerCoord = Coord3D.random(size, rnd);
-        List<GridCell> safeDistCoords; do {
-          safeDistCoords = impLevel.map.cells.values.where((c) => c.coord.distance(playerCoord) >= minDist).toList();
-          minDist--;
-        } while (safeDistCoords.length < ships.length);
-        safeDistCoords.shuffle(rnd);
-        for (int i = 0; i < ships.length; i++) {
-          enterImpulse(impLevel,ships.elementAt(i));
-        }
+      _enterImpulse(impLevel,playShip);
+      for (final ship in l.level.shipsAt(l.cell)) {
+        if (ship != playShip) _enterImpulse(impLevel,ship);
       }
     }
   }
 
-  void enterImpulse(ImpulseLevel impLvl, Ship? ship, {ImpulseCell? cell, safeDist = 4}) {
+  void _enterImpulse(ImpulseLevel impLvl, Ship? ship, {ImpulseCell? cell, safeDist = 4}) {
     if (ship == null) return;
     final sysLoc = ship.loc;
     if (sysLoc is SystemLocation) {
@@ -630,18 +673,27 @@ class FugueModel with ChangeNotifier {
         safeDistCells.shuffle(rnd);
         targetCell = safeDistCells.first;
       }
-      sysLoc.level.map.addShip(ship, targetCell);
-      ship.loc = ImpulseLocation(sysLoc, impLvl, targetCell);
+      ship.move(targetCell, impLevel: impLvl);
     }
+    pilotAction(ship.pilot, ActionType.movement);
   }
 
   void exitImpulse(Ship? ship) {
     if (ship == null) return;
     final impLoc = ship.loc;
     if (impLoc is ImpulseLocation) {
-      impLoc.level.map.removeShip(ship);
-      ship.loc = impLoc.systemLoc;
+      if (ship == playerShip) {
+        impLoc.level.getAllShips().forEach((s) => _exitImpulse(s, impLoc));
+      } else {
+        _exitImpulse(ship, impLoc);
+      }
     }
+    pilotAction(ship.pilot, ActionType.movement);
+  }
+
+  void _exitImpulse(Ship ship, ImpulseLocation impLoc) {
+    impLoc.level.removeShip(ship); //ship.loc = impLoc.systemLoc;
+    ship.move(impLoc.systemLoc.cell, toSystem: true);
   }
 
   void vectorShip(Ship? ship, Coord3D v) {
@@ -655,40 +707,27 @@ class FugueModel with ChangeNotifier {
     final l = ship.loc;
     GridCell? destination = l.level.map.cells[c];
     if (destination != null) {
-      _moveShipOnMap(ship, destination);
       final dist = l.cell.coord.distance(destination.coord);
       bool moving = false;
-      if (l is SystemLocation) {
-        final engine = ship.subEngine;
-        if (engine != null) {
-          double energyUsed = baseEnergy * (1 / engine.efficiency) * dist;
-          moving = ship.burnEnergy(energyUsed);
-          if (moving) {
-            ship.loc = SystemLocation(l.level,destination);
-            int auts = (engine.baseAutPerUnitTraversal * dist).round(); //print("Auts: $auts");
-            pilotAction(ship.pilot, ActionType.movement,actionAuts: auts);
-          } else {
-            addMsg("Out of energy");
-          }
-        }
-      } else if (l is ImpulseLocation) { //TODO: reuse above code somehow
-        final engine = ship.impEngine;
-        if (engine != null) {
-          double energyUsed = 10 * (1 / engine.efficiency) * dist;
-          moving = ship.burnEnergy(energyUsed);
-          if (moving) {
-            ship.loc = ImpulseLocation(l.systemLoc,l.level,destination);
-            int auts = (engine.baseAutPerUnitTraversal * dist).round();
-            pilotAction(ship.pilot, ActionType.movement,actionAuts: auts);
-          } else {
-            addMsg("Out of energy");
-          }
+      Engine? engine = switch(l) {
+        SystemLocation() => ship.subEngine,
+        ImpulseLocation() => ship.impEngine,
+      };
+      if (engine != null) {
+        double energyUsed = baseEnergy * (1 / engine.efficiency) * dist;
+        moving = ship.burnEnergy(energyUsed);
+        if (moving) {
+          if (ship.move(destination)) createAndEnterImpulse();
+          int auts = (engine.baseAutPerUnitTraversal * dist).round(); //print("Auts: $auts");
+          pilotAction(ship.pilot, ActionType.movement,actionAuts: auts);
+        } else {
+          addMsg("Out of energy");
         }
       } else {
         addMsg("Error: no engine");
       }
       if (!moving) {
-        _moveShipOnMap(ship,ship.loc.cell);
+        pilotAction(ship.pilot, ActionType.movement,actionAuts: 1);
       }
     }
   }
@@ -697,9 +736,23 @@ class FugueModel with ChangeNotifier {
     pilotAction(player, ActionType.movement, actionAuts: auts);
   }
 
-  void _moveShipOnMap(Ship ship, GridCell destination) {
-    ship.loc.level.map.removeShip(ship);
-    ship.loc.level.map.addShip(ship, destination);
+  void fire(Ship? ship) {
+    if (ship != null) {
+      Coord3D? target = ship.targetShip?.loc.cell.coord ?? ship.targetCoord;
+      if (target == null) {
+        addMsg("Error: no target"); return;
+      }
+      final cell = ship.loc.level.map.cells[target];
+      if (cell is ImpulseCell) { //TODO: sector-ranged weapons?
+        double? dam = ship.fireWeapon(cell, rnd, ship: ship.targetShip);
+        if (dam != null && ship.targetShip != null) {
+          addMsg("${ship.targetShip} takes $dam damage");
+          ship.targetShip!.takeDamage(dam.floor());
+        }
+      } else {
+        addMsg("Wrong firing level");
+      }
+    }
   }
 
   int score() => auTick + (player.starOne ? 500 : 0) + (galaxy.discoveredSystems() * 2) + (player.piratesVanquished * 3) + (victory ? 1000 : 0);
@@ -709,21 +762,22 @@ class FugueModel with ChangeNotifier {
     if (updateAfter) update();
   }
 
-  void runUntilNextPlayerTurn() { print("Running until next turn...");
-    do { //print("Tick: $auTick");
-      for (Pilot p in activePilots) {
+  void runUntilNextPlayerTurn() {
+    print("Running until next turn...");
+    do {
+      for (Pilot p in List.of(activePilots)) {  // ← Copy the list
         p.tick();
         Ship ship = pilotMap[p]!;
-        if (ship.loc.level == playerShip?.loc.level) {
+        if (ship.loc.sameLevel(playerShip?.loc)) {
           ship.tick();
           if (p.ready) {
-            vectorShip(ship,Rng.rndUnitVector(rnd));
+            vectorShip(ship, Rng.rndUnitVector(rnd));
           }
         }
       }
       auTick++;
       player.tick();
-      playerShip?.tick(); //TODO: factor in player motion?
+      playerShip?.tick();
     } while (!player.ready);
     update();
   }

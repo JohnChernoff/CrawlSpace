@@ -20,6 +20,11 @@ class OpenPlanetMenuIntent extends Intent {
   const OpenPlanetMenuIntent();
 }
 
+class ImpulseIntent extends Intent {
+  final bool enter;
+  const ImpulseIntent(this.enter);
+}
+
 class HyperSpaceIntent extends Intent {
   const HyperSpaceIntent();
 }
@@ -28,6 +33,20 @@ class ScannerModeIntent extends Intent {
   final bool forwards;
   final ScannerMode? mode;
   const ScannerModeIntent({this.mode,this.forwards = true});
+}
+
+class ScannerSelectionIntent extends Intent {
+  final bool up;
+  const ScannerSelectionIntent(this.up);
+}
+
+class ScannerTargetIntent extends Intent {
+  final bool ship;
+  const ScannerTargetIntent(this.ship);
+}
+
+class FireIntent extends Intent {
+  const FireIntent();
 }
 
 class LoiterIntent extends Intent {
@@ -105,6 +124,12 @@ class MainInput extends StatelessWidget {
         LogicalKeySet(LogicalKeyboardKey.clear):
         const LoiterIntent(),
 
+        LogicalKeySet(LogicalKeyboardKey.keyX, LogicalKeyboardKey.shift):
+        const ImpulseIntent(true),
+
+        LogicalKeySet(LogicalKeyboardKey.keyX):
+        const ImpulseIntent(false),
+
         LogicalKeySet(LogicalKeyboardKey.keyP):
         const OpenPlanetMenuIntent(),
 
@@ -119,6 +144,22 @@ class MainInput extends StatelessWidget {
 
         LogicalKeySet(LogicalKeyboardKey.keyS, LogicalKeyboardKey.shift):
         const ScannerModeIntent(mode: null, forwards: false),
+
+        LogicalKeySet(LogicalKeyboardKey.keyQ):
+        const ScannerSelectionIntent(true),
+
+        LogicalKeySet(LogicalKeyboardKey.keyA):
+        const ScannerSelectionIntent(false),
+
+        LogicalKeySet(LogicalKeyboardKey.keyT):
+        const ScannerTargetIntent(false),
+
+        LogicalKeySet(LogicalKeyboardKey.keyT, LogicalKeyboardKey.shift):
+        const ScannerTargetIntent(true),
+
+        LogicalKeySet(LogicalKeyboardKey.keyF):
+        const FireIntent(),
+
       },
       actions: {
         DirectionIntent: CallbackAction<DirectionIntent>(
@@ -159,6 +200,38 @@ class MainInput extends StatelessWidget {
         LoiterIntent: CallbackAction<LoiterIntent>(
             onInvoke: (_) {
               fm.loiter();
+              return null;
+            }
+        ),
+        ImpulseIntent: CallbackAction<ImpulseIntent>(
+            onInvoke: (intent) {
+              if (intent.enter) {
+                fm.createAndEnterImpulse();
+              } else {
+                fm.exitImpulse(fm.playerShip);
+              }
+              return null;
+            }
+        ),
+        ScannerSelectionIntent: CallbackAction<ScannerSelectionIntent>(
+            onInvoke: (intent) {
+              fm.selectScannedObject(intent.up);
+              return null;
+            }
+        ),
+        ScannerTargetIntent: CallbackAction<ScannerTargetIntent>(
+            onInvoke: (intent) {
+              if (intent.ship) {
+                fm.targetShipFromScannedCell();
+              } else {
+                fm.targetScannedObject(fm.playerShip,fm.currentScanSelection);
+              }
+              return null;
+            }
+        ),
+        FireIntent: CallbackAction<FireIntent>(
+            onInvoke: (_) {
+              fm.fire(fm.playerShip);
               return null;
             }
         ),

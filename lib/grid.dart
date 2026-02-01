@@ -7,6 +7,20 @@ class Level {
   GridCell? upperLevel;
   late Grid map;
   Level({this.upperLevel});
+  Set<Ship> shipsAt(GridCell cell) => map.shipMap[cell] ?? {};
+  Set<Ship> getAllShips() {
+    Set<Ship> ships = {};
+    for (final cell in map._cellList) {
+      final s = shipsAt(cell); if (s.isNotEmpty) ships.addAll(s);
+    }
+    return ships;
+  }
+  bool addShip(Ship ship, GridCell cell) {
+    return  map.shipMap.putIfAbsent(cell, () => {}).add(ship);
+  }
+  bool removeShip(Ship ship, {GridCell? cell}) {
+    return map.shipMap.putIfAbsent(cell ?? ship.loc.cell, () => {}).remove(ship);
+  }
 }
 
 abstract class GridCell {
@@ -33,14 +47,6 @@ class Grid<T extends GridCell> {
   final int size;
   final Map<Coord3D, T> cells;
   late final List<T> _cellList;
-
-  bool removeShip(Ship ship, {GridCell? cell}) {
-    return shipMap.putIfAbsent(cell ?? ship.loc.cell, () => {}).remove(ship);
-  }
-
-  bool addShip(Ship ship, GridCell cell) {
-    return shipMap.putIfAbsent(cell, () => {}).add(ship);
-  }
 
   Grid(this.size, this.cells)
       : _cellList = cells.values.toList();
