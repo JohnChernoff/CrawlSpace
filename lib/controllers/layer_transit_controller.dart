@@ -52,6 +52,7 @@ class LayerTransitController extends FugueController {
           return true;
         }
       }
+      if (ship.playship) fm.scannerController.reset();
     }
     return false;
   }

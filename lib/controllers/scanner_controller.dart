@@ -123,9 +123,13 @@ class ScannerController extends FugueController {
         scannerMode = ScannerMode.values.elementAt(ScannerMode.values.length - 1);
       }
     }
+    reset();
+    fm.update();
+  }
+
+  void reset() {
     currentScanSelection = null;
     currentScannedShipIndex = 0;
-    fm.update();
   }
 
 }
