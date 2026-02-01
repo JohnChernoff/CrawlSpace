@@ -6,10 +6,9 @@ import 'package:space_fugue/inputs/hyper_input.dart';
 import 'package:space_fugue/inputs/planet_input.dart';
 import 'package:space_fugue/ship.dart';
 import 'package:space_fugue/system.dart';
-
 import '../controllers/menu_controller.dart';
 import '../fugue_model.dart';
-import '../inputs/main_input.dart';
+import '../inputs/ship_input.dart';
 
 class AsciiGrid extends StatefulWidget {
   final FugueModel fugueModel;
@@ -56,7 +55,7 @@ class _AsciiGridState extends State<AsciiGrid> {
               cellWidgets.add(GridWidget(cell, ship.loc.level.shipsAt(closestCell), ship));
             }
             else {
-              if (scannedCell?.coord == cell.coord) { print("Adding scanned coord: ${cell.coord}");
+              if (scannedCell?.coord == cell.coord) { //print("Adding scanned coord: ${cell.coord}");
                 cellWidgets.add(GridWidget(cell, ship.loc.level.shipsAt(scannedCell!), ship, color: Colors.white));
               } else {
                 if (shipCoord == cell.coord) {
@@ -73,7 +72,7 @@ class _AsciiGridState extends State<AsciiGrid> {
           }
           if (!showAllCellsOnZPlane && (cellWidgets.isEmpty || cellWidgets.first.cell.coord.distance(shipCoord) > closestCell.coord.distance(shipCoord))) {
             cellWidgets.add(GridWidget(closestCell, ship.loc.level.shipsAt(closestCell), ship));
-            if (cellWidgets.length > 1) print("adding closest coord: ${closestCell.coord}");
+            //if (cellWidgets.length > 1) print("adding closest coord: ${closestCell.coord}");
           } else {
             cellWidgets.sort((a, b) => a.cell.coord.z.compareTo(b.cell.coord.z)); // IMPORTANT: back → front
           }
@@ -96,9 +95,9 @@ class _AsciiGridState extends State<AsciiGrid> {
 Widget buildInputLayer({required Widget child, required FugueModel fugueModel}) {
   switch (fugueModel.menuController.inputMode) {
     case InputMode.main:
-      return MainInput(child,fugueModel);
+      return ShipInput(child,fugueModel);
     case InputMode.inventory:
-      return MainInput(child, fugueModel); //InventoryInput(child);
+      return ShipInput(child, fugueModel); //InventoryInput(child);
     case InputMode.planet:
       return PlanetInput(child, fugueModel);
     case InputMode.hyperspace:

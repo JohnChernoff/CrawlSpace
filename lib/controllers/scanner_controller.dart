@@ -16,7 +16,7 @@ enum ScannerMode {
   roid(Colors.grey),
   oddities(Colors.pink),
   storms(Colors.redAccent),
-  field(Colors.brown),;
+  field(Colors.brown); //,
   final Color color;
   const ScannerMode(this.color);
   bool get scaningShips => this == ScannerMode.ships || this == ScannerMode.objects;
@@ -32,7 +32,7 @@ enum ScannerMode {
 class ScannerController extends FugueController {
   ScannerController(super.fm);
 
-  ScannerMode scannerMode = ScannerMode.all;
+  ScannerMode scannerMode = ScannerMode.objects;
   List<GridCell> currentScan = [];
   GridCell? currentScanSelection;
   int currentScannedShipIndex = 0;

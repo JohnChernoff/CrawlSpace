@@ -10,11 +10,16 @@ class AudioController extends FugueController {
   AudioController(super.fm);
 
   bool isPlayingMusic() => fuguePlayer.state == PlayerState.playing || fuguePlayer.state == PlayerState.completed;
-  void newTrack(MusicalMood moo) {
-    if (isPlayingMusic() && mood != moo) {
-      mood = moo;
+  void newTrack({MusicalMood? newMood}) {
+    if (isPlayingMusic()) {
+      if (newMood != null) mood = newMood;
       if (fuguePlayer.state == PlayerState.playing) {
-        fuguePlayer.stop().then((v) => fuguePlayer.play(AssetSource(getTrack())));
+        fm.glog("Searching for new track...");
+        AssetSource track; do {
+          track = AssetSource(getTrack());
+        } while (fuguePlayer.source.toString() == track.toString());
+        fm.glog("New Mood Track: ${track.toString()}");
+        fuguePlayer.stop().then((v) => fuguePlayer.play(track));
       } else {
         fuguePlayer.play(AssetSource(getTrack()));
       }
@@ -24,6 +29,6 @@ class AudioController extends FugueController {
     MusicalMood.danger => "audio/tracks/danger${fm.rnd.nextInt(4)+1}.mp3",
     MusicalMood.planet => "audio/tracks/planet${fm.rnd.nextInt(4)+1}.mp3",
     MusicalMood.space => "audio/tracks/wandering${fm.rnd.nextInt(4)+1}.mp3",
-    MusicalMood.intro => "audio/tracks/intro1.mp3",
+    MusicalMood.intro => "audio/tracks/intro${fm.rnd.nextInt(2)+1}.mp3", //"audio/tracks/intro1.mp3",
   };
 }

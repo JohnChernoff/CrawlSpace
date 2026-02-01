@@ -12,7 +12,7 @@ class PlanetsideController extends FugueController {
   PlanetsideController(super.fm);
 
   void goPlan(Planet? planet) { //print("Visiting: $planet");
-    fm.audioController.newTrack(MusicalMood.planet);
+    fm.audioController.newTrack(newMood: MusicalMood.planet);
     OrbitResult result = OrbitResult.newOrbit; //player.newOrbit(planet);
     if (result == OrbitResult.insufficientEnergy) {
       fm.outOfEnergy();
@@ -41,6 +41,7 @@ class PlanetsideController extends FugueController {
     fm.player.planet = null; //still orbiting planet
     fm.menuController.inputMode = InputMode.main;
     fm.msgController.addMsg("Launching...");
+    fm.audioController.newTrack(newMood: MusicalMood.space);
     fm.pilotController.action(fm.player,ActionType.planetLaunch);
   }
 

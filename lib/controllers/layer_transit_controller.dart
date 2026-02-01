@@ -1,3 +1,4 @@
+import 'package:space_fugue/controllers/audio_controller.dart';
 import 'package:space_fugue/controllers/fugue_controller.dart';
 import 'package:space_fugue/controllers/pilot_controller.dart';
 import '../agent.dart';
@@ -115,10 +116,11 @@ class LayerTransitController extends FugueController {
         targetCell = safeDistCells.first;
       }
       ship.move(targetCell, impLevel: impLvl);
+      fm.audioController.newTrack(newMood: MusicalMood.danger);
     } //fm.pilotController.action(ship.pilot, ActionType.movement);
   }
 
-  void exitImpulse(Ship? ship) {
+  void enterSublight(Ship? ship) {
     if (ship == null) return;
     final impLoc = ship.loc;
     if (impLoc is ImpulseLocation) {
@@ -127,6 +129,7 @@ class LayerTransitController extends FugueController {
       } else {
         _exitImpulse(ship, impLoc);
       }
+      fm.audioController.newTrack(newMood: MusicalMood.space);
       fm.pilotController.action(ship.pilot, ActionType.movement);
     } else {
       fm.msgController.addMsg("Error: ship not at impulse level");

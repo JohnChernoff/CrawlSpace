@@ -1,3 +1,4 @@
+import 'package:space_fugue/controllers/audio_controller.dart';
 import 'package:space_fugue/controllers/fugue_controller.dart';
 import 'package:space_fugue/controllers/pilot_controller.dart';
 import '../planet.dart';
@@ -89,6 +90,7 @@ class MenuController extends FugueController {
     }
     sb.writeln("(l)aunch");
     fm.msgController.addMsg(sb.toString());
+    fm.audioController.newTrack(newMood: MusicalMood.planet);
     fm.pilotController.action(fm.player,ActionType.planetLand);
   }
 

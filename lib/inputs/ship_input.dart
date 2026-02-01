@@ -4,10 +4,7 @@ import '../controllers/menu_controller.dart';
 import '../controllers/scanner_controller.dart';
 import '../coord_3d.dart';
 import '../fugue_model.dart';
-
-class CancelToMainIntent extends Intent {
-  const CancelToMainIntent();
-}
+import 'general_input.dart';
 
 class DirectionIntent extends Intent {
   final int dx,dy,dz;
@@ -58,16 +55,18 @@ class LoiterIntent extends Intent {
 const downComboKey = LogicalKeyboardKey.shift;
 const upComboKey = LogicalKeyboardKey.keyZ;
 
-class MainInput extends StatelessWidget {
+class ShipInput extends StatelessWidget with GeneralInputMixin {
   final Widget child;
+  @override
   final FugueModel fm;
-  const MainInput(this.child, this.fm, {super.key});
+  const ShipInput(this.child, this.fm, {super.key});
 
   @override
   Widget build(BuildContext context) {
     return FocusableActionDetector(
       autofocus: true,
       shortcuts: {
+        ...generalShortcuts,
         LogicalKeySet(LogicalKeyboardKey.arrowUp):
         const DirectionIntent(0, -1, 0),
         LogicalKeySet(LogicalKeyboardKey.arrowDown):
@@ -132,7 +131,7 @@ class MainInput extends StatelessWidget {
         LogicalKeySet(LogicalKeyboardKey.keyX):
         const ImpulseIntent(false),
 
-        LogicalKeySet(LogicalKeyboardKey.keyP):
+        LogicalKeySet(LogicalKeyboardKey.keyL):
         const OpenPlanetMenuIntent(),
 
         LogicalKeySet(LogicalKeyboardKey.keyH):
@@ -164,6 +163,7 @@ class MainInput extends StatelessWidget {
 
       },
       actions: {
+        ...generalActions,
         DirectionIntent: CallbackAction<DirectionIntent>(
           onInvoke: (intent) { //print("Moving ship");
             fm.movementController.vectorShip(
@@ -211,7 +211,7 @@ class MainInput extends StatelessWidget {
                 fm.layerTransitController.createAndEnterImpulse();
                 fm.update();
               } else {
-                fm.layerTransitController.exitImpulse(fm.playerShip);
+                fm.layerTransitController.enterSublight(fm.playerShip);
               }
               return null;
             }
