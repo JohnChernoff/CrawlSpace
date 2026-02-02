@@ -40,6 +40,18 @@ class FireResult {
   FireResult(this.dmg,this.minCool,this.ammoWarn);
 }
 
+class Scrap extends Item {
+  double mass;
+  bool jettisonable;
+  Scrap(super.name, {
+    required this.mass,
+    this.jettisonable = true,
+    required super.baseCost,
+    super.rarity = .01
+  });
+  double get costEffectiveness => baseCost / mass;
+}
+
 class Ship {
   ShipClass shipClass;
   String name;
@@ -58,6 +70,7 @@ class Ship {
   Coord3D? targetCoord;
   Coord3D? interceptCoord;
   List<GridCell> currentPath = [];
+  List<Scrap> scrapHeap = [];
 
   Ship(this.name, this.owner, {
     required this.shipClass,
@@ -82,7 +95,7 @@ class Ship {
     subEngine ??= Engine.fromStock(StockEngine.basicFedSublight);
     impEngine ??= Engine.fromStock(StockEngine.basicFedImpulse);
     shield ??= Shield.fromStock(StockShield.basicEnergon);
-    weapons ??= [Weapon.fromStock(StockWeapon.basicLaser)];
+    weapons ??= [Weapon.fromStock(StockWeapon.plasmaCannon)];
 
     inventory.add(generator);
     installSystem(generator);
@@ -124,6 +137,24 @@ class Ship {
       return true;
     }
     return false;
+  }
+
+  double get scrapVal => scrapHeap.fold<double>(0.0, (sum, i) => sum + i.baseCost);
+
+  bool addScrap(ShipSystem s) {
+    double m = s.mass/ 20; //TODO: some ship system to improve this?
+      if (availableMass > m) {
+        scrapHeap.add(Scrap("scrapped ${s.name}", mass: m, baseCost: (s.baseCost / 100).round()));
+        return true;
+      } return false;
+  }
+
+  Scrap? jettisonScrap() {
+    if (scrapHeap.isNotEmpty) {
+      scrapHeap.sort((a,b) => a.costEffectiveness.compareTo(b.costEffectiveness));
+      return scrapHeap.removeAt(0);
+    }
+    return null;
   }
 
   double distanceFrom(Ship ship) => ship.loc.cell.coord.distance(loc.cell.coord);
@@ -294,7 +325,8 @@ class Ship {
     for (final ammo in ammoMap.keys) {
       m += ammoMap[ammo]! * ammo.mass;
     }
-    return (getAllInstalledSystems.sumBy((s) => s.mass)) + m;
+    m += scrapHeap.fold<double>(0.0, (sum, i) => sum + i.mass);
+    return (getAllInstalledSystems.fold<double>(0.0, (sum, s) => sum + s.mass)) + m;
   }
 
   double get availableMass => shipClass.maxMass - currentMass;
@@ -339,7 +371,7 @@ class Ship {
     }
   }
 
-  List<TextBlock> status() {
+  List<TextBlock> status({bool tactical = false}) {
     List<TextBlock> blocks = [];
     blocks.add(TextBlock(name,Colors.green,true));
     blocks.add(TextBlock("Hull: ${hullRemaining.toStringAsFixed(2)} ",Colors.green,false));
@@ -348,16 +380,23 @@ class Ship {
     blocks.add(TextBlock("%: ${currentShieldPercentage.toStringAsFixed(2)}",Colors.blue,true));
     blocks.add(TextBlock("Energy: ${getCurrentEnergy().toStringAsFixed(2)}, ",Colors.green,false));
     blocks.add(TextBlock("%: ${currentEnergyPercentage.round().toStringAsFixed(2)}",Colors.blue,true));
-    for (final s in installedSystems) {
-      if (s.system != null) {
-        blocks.add(TextBlock("${s.system!.name} ${s.system!.active ? '+' : '-'}",Colors.white,true));
+    for (final system in installedSystems) { ShipSystem? s = system.system;
+      if (s != null) {
+        bool cooldown = s is Weapon && s.cooldown > 0;
+        blocks.add(TextBlock("${s.name} ${s.active ? '+' : '-'}",cooldown ? Colors.red : Colors.white,true));
       }
     }
-    if (targetCoord != null) blocks.add(TextBlock("Scanning Coord: $targetCoord", Colors.orangeAccent, true));
-    if (playship && (targetShip != null && targetShip!.npc)) {
-      blocks.add(const TextBlock("Scanning Ship: ", Colors.redAccent, true));
-      blocks.addAll(targetShip!.status());
+    if (!tactical) {
+      blocks.add(TextBlock("Remaining capacity: ${availableMass.toStringAsFixed(2)}", Colors.grey, true));
+      blocks.add(TextBlock("Total scrap value: ${scrapVal.toStringAsFixed(2)}", Colors.grey, true));
     }
+    blocks.add(const TextBlock("",Colors.black,true));
+    if (targetCoord != null) blocks.add(TextBlock("Scanning Coord: $targetCoord", Colors.orangeAccent, true));
+    if (!tactical && (targetShip != null && targetShip!.npc)) {
+      blocks.add(const TextBlock("Scanning Ship: ", Colors.orangeAccent, true));
+      blocks.addAll(targetShip!.status(tactical: true));
+    }
+
     return blocks;
   }
 

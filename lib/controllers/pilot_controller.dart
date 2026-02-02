@@ -4,6 +4,7 @@ import 'package:collection/collection.dart';
 import 'package:space_fugue/controllers/fugue_controller.dart';
 import 'package:space_fugue/impulse.dart';
 import 'package:space_fugue/location.dart';
+import 'package:space_fugue/systems/ship_system.dart';
 import '../pilot.dart';
 import '../rng.dart';
 import '../ship.dart';
@@ -19,7 +20,8 @@ enum ActionType {
   warp(8,0,0,false),
   energyScoop(72,0,0,false),
   piracy(100,100,10,false),
-  combat(10,1,1,false);
+  combat(10,1,1,false),
+  scrap(5,5,5,false);
   final int baseAuts, risk, heat;
   final bool dna;
   const ActionType(this.baseAuts,this.risk, this.heat, this.dna);
@@ -30,7 +32,8 @@ class PilotController extends FugueController {
 
   void action(Pilot? pilot, ActionType actionType, { mod = 1.0, int? actionAuts }) {
     if (pilot == null) return;
-    if (actionType.risk > 0 && fm.rnd.nextInt(255) < fm.player.fedLevel()) { //msgController.addMsg("You have a bad feeling about this...");
+    if (pilot == fm.player && actionType.risk > 0 && fm.rnd.nextInt(255) < fm.player.fedLevel()) {
+      //msgController.addMsg("You have a bad feeling about this...");
       if (fm.rnd.nextInt(128) < (max(actionType.risk - (actionType.dna ? fm.player.dnaScram : 0),1))) {
         fm.heat(actionType.heat);
       }
@@ -67,12 +70,12 @@ class PilotController extends FugueController {
     ship.tick(fm.rnd);
     Pilot? pilot = ship.pilot; if (pilot == null) return;
     if (pilot.ready) {
-      bool firedWeapon = false;
       final playShip = fm.playerShip;
+      //TODO: detect when systems are critical and flee
       if (playShip != null && pilot.hostile && ship.loc.level.getAllShips().contains(playShip)) {
         ship.targetShip = playShip;
         final loc = ship.loc; if (loc is ImpulseLocation) {
-            Weapon? w = ship.primaryWeapon; if (w != null) {
+            Weapon? w = ship.primaryWeapon; if (w != null && ship.currentShieldPercentage > 50) {
               //print("NPC combat...${w.accuracyRangeConfig.idealRange}, ${ship.distanceFrom(playShip)}");
               if ((w.accuracyRangeConfig.idealRange - ship.distanceFrom(playShip)).abs() > 1) {
                 final idealCells = ship.loc.level.map.cells.values
@@ -80,20 +83,25 @@ class PilotController extends FugueController {
                     .sorted((c1,c2) => ship.distanceFromCoord(c2.coord).compareTo(ship.distanceFromCoord(c1.coord)));
                 ship.currentPath = ship.loc.level.map.greedyPath(ship.loc.cell, idealCells.first, 1, 3, fm.rnd);
               } else {
-                fm.combatController.fire(ship);
+                if (w.cooldown == 0) {
+                  fm.combatController.fire(ship);
+                } else {
+                  fm.pilotController.action(pilot, ActionType.combat, actionAuts: 1);
+                }
+                return;
               }
-            } else { //run!
-              print("Fleeing!");
-              //TODO: fleeing path
+            } else {
+              fm.msgController.addMsg("${ship.name} flees!");
+              final idealCells = ship.loc.level.map.cells.values
+                  .sorted((c1,c2) => playShip.distanceFromCoord(c2.coord).compareTo(playShip.distanceFromCoord(c1.coord)));
+              ship.currentPath = ship.loc.level.map.greedyPath(ship.loc.cell, idealCells.first, 1, 3, fm.rnd);
             }
         }
       }
-      if (!firedWeapon) {
-        if (ship.currentPath.isNotEmpty) {
-          fm.movementController.moveShip(ship, ship.currentPath.removeAt(0).coord);
-        } else {
-          fm.movementController.vectorShip(ship, Rng.rndUnitVector(fm.rnd));
-        }
+      if (ship.currentPath.isNotEmpty) {
+        fm.movementController.moveShip(ship, ship.currentPath.removeAt(0).coord);
+      } else {
+        fm.movementController.vectorShip(ship, Rng.rndUnitVector(fm.rnd));
       }
     }
   }

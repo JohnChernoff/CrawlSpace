@@ -69,14 +69,6 @@ class _FugueHomeState extends State<FugueHome> {
   @override
   Widget build(BuildContext context) { //print("Building Main Widget");
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inverseSurface,
-        title: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-          Text(widget.title, style: const TextStyle(color: Colors.white)),
-          helpButton(),
-          optionButton(),
-        ])
-      ),
       body: Container(
         decoration: const BoxDecoration(
           image: DecorationImage(image: AssetImage("img/splash_land.png"),fit: BoxFit.fill),

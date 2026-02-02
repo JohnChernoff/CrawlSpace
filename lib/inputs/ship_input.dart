@@ -48,6 +48,11 @@ class FireIntent extends Intent {
   const FireIntent();
 }
 
+class ScrapIntent extends Intent {
+  final bool collect;
+  const ScrapIntent(this.collect);
+}
+
 class LoiterIntent extends Intent {
     const LoiterIntent();
 }
@@ -161,6 +166,12 @@ class ShipInput extends StatelessWidget with GeneralInputMixin {
         LogicalKeySet(LogicalKeyboardKey.keyF):
         const FireIntent(),
 
+        LogicalKeySet(LogicalKeyboardKey.keyS, LogicalKeyboardKey.shift):
+        const ScrapIntent(true),
+
+        LogicalKeySet(LogicalKeyboardKey.keyJ):
+        const ScrapIntent(false),
+
       },
       actions: {
         ...generalActions,
@@ -235,6 +246,16 @@ class ShipInput extends StatelessWidget with GeneralInputMixin {
         FireIntent: CallbackAction<FireIntent>(
             onInvoke: (_) {
               fm.combatController.fire(fm.playerShip);
+              return null;
+            }
+        ),
+        ScrapIntent: CallbackAction<ScrapIntent>(
+            onInvoke: (intent) {
+              if (intent.collect) {
+                fm.combatController.scrap();
+              } else {
+                fm.combatController.jettison(fm.playerShip);
+              }
               return null;
             }
         ),

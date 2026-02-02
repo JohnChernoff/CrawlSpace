@@ -18,8 +18,8 @@ enum WeaponEgo {
 //enum RangeAttenuation {  linear,exponential }
 
 class RangeConfig {
-  final int idealRange;
-  final int minRange, maxRange;
+  final double idealRange;
+  final double minRange, maxRange;
   final double closeFalloff, farFalloff;
 
   const RangeConfig({
@@ -32,7 +32,7 @@ class RangeConfig {
 
   double rangeMultiplier(double dist) {
     if (dist < minRange || dist > maxRange) return 0.0;
-    if (dist == idealRange) return 1.0;
+    //if (dist == idealRange) return 1.0;
     if (dist > idealRange) {
       return math.exp(-farFalloff * (dist - idealRange));
     } else {
@@ -133,8 +133,10 @@ class Weapon extends ShipSystem {
   double fire(double dist, math.Random rnd, {Ship? targetShip, int? clips}) {
     double damage = 0;
     double hitRoll = rnd.nextDouble();
-    double effectiveAccuracy = baseAccuracy * accuracyRangeConfig.rangeMultiplier(dist);
-
+    //double effectiveAccuracy = baseAccuracy * accuracyRangeConfig.rangeMultiplier(dist);
+    final effectiveAccuracy =
+    (baseAccuracy * accuracyRangeConfig.rangeMultiplier(dist))
+        .clamp(0.05, 0.95);
     bool hit = hitRoll < effectiveAccuracy;
 
     if (hit) {

@@ -2,7 +2,7 @@ import 'package:space_fugue/systems/weapons.dart';
 
 import '../systems/ship_system.dart';
 
-enum StockWeapon { basicLaser, basicTorp }
+enum StockWeapon { basicLaser, plasmaCannon, basicTorp }
 
 final Map<StockWeapon, WeaponData> stockWeapons = {
   StockWeapon.basicLaser: const WeaponData(
@@ -16,7 +16,21 @@ final Map<StockWeapon, WeaponData> stockWeapons = {
     fireRate: 10,
     baseAccuracy: .8,
     dmgRangeConfig: RangeConfig(idealRange: 1, minRange: 0, maxRange: 8, closeFalloff: .1, farFalloff: .5),
-    accuracyRangeConfig: RangeConfig(idealRange: 1, minRange: 0, maxRange: 8, closeFalloff: .1, farFalloff: .33),
+    accuracyRangeConfig: RangeConfig(idealRange: 1.7, minRange: 0, maxRange: 8, closeFalloff: .1, farFalloff: .33),
+  ),
+
+  StockWeapon.plasmaCannon: const WeaponData(
+    systemData: ShipSystemData("Plasma Cannon",
+        mass: 10, baseCost: 100, baseRepairCost: 1.5, powerDraw: .5),
+    dmgDice: 4,
+    dmgDiceSides: 60,
+    dmgBase: 16,
+    dmgType: DamageType.plasma,
+    energyRate: 20,
+    fireRate: 12,
+    baseAccuracy: .8,
+    dmgRangeConfig: RangeConfig(idealRange: 1, minRange: 0, maxRange: 8, closeFalloff: .1, farFalloff: .2),
+    accuracyRangeConfig: RangeConfig(idealRange: 1.7, minRange: 0, maxRange: 8, closeFalloff: .1, farFalloff: .1),
   ),
 
   StockWeapon.basicTorp: const WeaponData(

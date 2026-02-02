@@ -111,7 +111,7 @@ class FugueModel with ChangeNotifier {
     pilotMap[player] = playShip;
     for (System sys in galaxy.systems) {
       for (int i=0;i<rnd.nextInt(3);i++) {
-        addShip(Ship("${Rng.rndColorName(rnd)}${faker.animal.snake()}",
+        addShip(Ship("${Rng.rndColorName(rnd)}${Rng.rndAnimalName(rnd)}",
             Pilot(faker.name.fullName(),sys),
             shipClass: ShipClass.mentok,
             loc: SystemLocation(sys, sys.map.rndCell(rnd))));

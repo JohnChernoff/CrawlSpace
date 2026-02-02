@@ -7,10 +7,19 @@ enum ColorName {
   peppermint,olive,puce,teal,taupe,vermillion,brown,silver,gold,bronze
 }
 
+enum AnimalName {
+  viper, falcon, shark, raven, wolf, bear, eagle, cobra, mantis, wasp,
+  lynx, pike, hornet, badger, jackal, vulture, orca, panther, reaper, basilisk,
+}
+
 class Rng {
 
   static String rndColorName(Random rnd) {
     return ColorName.values.elementAt(rnd.nextInt(ColorName.values.length)).name;
+  }
+
+  static String rndAnimalName(Random rnd) {
+    return AnimalName.values.elementAt(rnd.nextInt(AnimalName.values.length)).name;
   }
 
   static int rollDice(int count, int sides, Random rnd) {

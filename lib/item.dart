@@ -9,3 +9,4 @@ class Item {
   Item(this.name, {required this.baseCost, required this.rarity})
       : id = _idCounter++;
 }
+

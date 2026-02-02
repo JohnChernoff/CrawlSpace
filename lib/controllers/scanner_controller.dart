@@ -38,8 +38,8 @@ class ScannerController extends FugueController {
   int currentScannedShipIndex = 0;
 
   List<TextBlock> statusText() {
-    List<TextBlock> blocks = [];
-    blocks.add(const TextBlock("Status: ",Colors.white,true));
+    List<TextBlock> blocks = []; //blocks.add(const TextBlock("Status: ",Colors.white,true));
+    blocks.add(TextBlock("Tick: ${fm.auTick / 100}",Colors.brown,true));
 
     Ship? ship = fm.playerShip; if (ship == null) {
       blocks.add(const TextBlock("No ship!",Colors.red,true));
