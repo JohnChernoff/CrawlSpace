@@ -9,8 +9,11 @@ import '../location.dart';
 import '../pilot.dart';
 import '../ship.dart';
 import '../system.dart';
+import 'menu_controller.dart';
 
 class LayerTransitController extends FugueController {
+  Map<String,System> currentLinkMap = {};
+
   LayerTransitController(super.fm);
 
   ImpulseLocation? get playerImpulseLoc => pilotImpulseLoc(fm.player);
@@ -20,6 +23,66 @@ class LayerTransitController extends FugueController {
       return l;
     } else {
       return null;
+    }
+  }
+
+  void planetFall() {
+    Ship? ship = fm.playerShip; if (ship == null) {
+      fm.msgController.addMsg("No ship!"); return;
+    }
+    final cell = ship.loc.cell; if (cell is! SectorCell) {
+      fm.msgController.addMsg("Wrong layer!"); return;
+    }
+    final planet = cell.planet; if (planet == null) {
+      fm.msgController.addMsg("No planet!"); return;
+    }
+
+    if (planet == fm.galaxy.homeWorld) {
+      fm.endGame("You complete your mission!",home: true);
+      return;
+    } else {
+      fm.msgController.addMsg("Landing on ${planet.name}");
+      fm.msgController.addMsg(planet.description);
+      if (fm.player.tradeTarget?.planet == planet) {
+        fm.msgController.addMsg(
+            "You deliver your cargo.  Reward: ${fm.player.tradeTarget
+                ?.reward}");
+        fm.player.credits += fm.player.tradeTarget?.reward ?? 0;
+        fm.player.tradeTarget = null;
+      }
+    }
+    fm.menuController.showPlanetMenu(planet);
+    fm.audioController.newTrack(newMood: MusicalMood.planet);
+    fm.pilotController.action(fm.player,ActionType.planetLand);
+  }
+
+  void selectHyperSpaceLink() {
+    Ship? ship = fm.playerShip; if (ship == null) {
+      fm.msgController.addMsg("No ship!"); return;
+    }
+    final cell = ship.loc.cell; if (cell is! SectorCell) {
+      fm.msgController.addMsg("Wrong layer!"); return;
+    }
+    final star = cell.starClass; if (star == null) {
+      fm.msgController.addMsg("No star!"); return;
+    }
+    final system = ship.loc.level; if (system is! System) {
+      fm.msgController.addMsg("No system?!"); return;
+    }
+    currentLinkMap.clear();
+    for (int i=0; i<system.links.length; i++) {
+      final link = system.links.elementAt(i);
+      String letter = String.fromCharCode(97 + i); // 97 is ASCII for 'a'
+      currentLinkMap[letter] = link;
+    }
+    fm.menuController.showHyperSpaceMenu(currentLinkMap);
+    fm.pilotController.action(fm.player, ActionType.sector);
+  }
+
+  void hyperSpace(String letter) {
+    if (currentLinkMap.containsKey(letter)) {
+      fm.menuController.inputMode = InputMode.main;
+      newSystem(fm.player, currentLinkMap[letter]!);
     }
   }
 

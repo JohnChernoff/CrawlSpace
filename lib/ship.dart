@@ -95,7 +95,7 @@ class Ship {
     subEngine ??= Engine.fromStock(StockEngine.basicFedSublight);
     impEngine ??= Engine.fromStock(StockEngine.basicFedImpulse);
     shield ??= Shield.fromStock(StockShield.basicEnergon);
-    weapons ??= [Weapon.fromStock(StockWeapon.plasmaCannon)];
+    weapons ??= [Weapon.fromStock(StockWeapon.basicLaser)];
 
     inventory.add(generator);
     installSystem(generator);

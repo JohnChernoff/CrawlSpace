@@ -148,7 +148,7 @@ class ShipInput extends StatelessWidget with GeneralInputMixin {
         LogicalKeySet(LogicalKeyboardKey.keyS):
         const ScannerModeIntent(mode: null),
 
-        LogicalKeySet(LogicalKeyboardKey.keyS, LogicalKeyboardKey.shift):
+        LogicalKeySet(LogicalKeyboardKey.keyW):
         const ScannerModeIntent(mode: null, forwards: false),
 
         LogicalKeySet(LogicalKeyboardKey.keyQ):
@@ -192,13 +192,13 @@ class ShipInput extends StatelessWidget with GeneralInputMixin {
         ),
         OpenPlanetMenuIntent: CallbackAction(
           onInvoke: (_) {
-            fm.menuController.visitPlanet();
+            fm.layerTransitController.planetFall();
             return null;
           },
         ),
         HyperSpaceIntent: CallbackAction(
           onInvoke: (_) {
-            fm.menuController.hyperSpaceMenu();
+            fm.layerTransitController.selectHyperSpaceLink();
             return null;
           },
         ),

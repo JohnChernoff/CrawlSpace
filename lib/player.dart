@@ -18,7 +18,6 @@ class Player extends Pilot {
   int dnaScram = 5;
   TradeTarget? tradeTarget;
   bool starOne = false;
-  int thievery = 25; //200-300
   int broadcasts = 0;
   int piratesEncountered = 0;
   int piratesVanquished = 0;

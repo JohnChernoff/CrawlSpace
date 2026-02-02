@@ -14,8 +14,11 @@ import 'package:space_fugue/planet.dart';
 import 'package:space_fugue/player.dart';
 import 'package:space_fugue/rng.dart';
 import 'package:space_fugue/ship.dart';
+import 'package:space_fugue/shop.dart';
 import 'package:space_fugue/stock_items/stock_ships.dart';
+import 'package:space_fugue/stock_items/stock_weapons.dart';
 import 'package:space_fugue/system.dart';
+import 'package:space_fugue/systems/weapons.dart';
 import 'agent.dart';
 import 'controllers/audio_controller.dart';
 import 'controllers/layer_transit_controller.dart';
@@ -48,7 +51,6 @@ class FugueModel with ChangeNotifier {
   bool victory = false;
   final faker = Faker.instance;
   final msgWorker = MessageQueueWorker();
-  int costRepair = 1, costRecharge = 1, costBioHack = 50, costBroadcast = 2000;
   Map<Pilot,Ship> pilotMap = {};
   Set<Pilot> pilots = {};
   Ship? get playerShip => pilotMap[player];
@@ -63,6 +65,7 @@ class FugueModel with ChangeNotifier {
   late PlanetsideController planetsideController;
   late ScannerController scannerController;
   late AudioController audioController;
+  ShopOptions shopOptions = ShopOptions();
 
   FugueModel(this.galaxy,String playerName) {
     msgController = MessageController(this);
@@ -107,7 +110,9 @@ class FugueModel with ChangeNotifier {
     }
     final playCell = player.system.map.rndCell(rnd);
     Ship playShip = Ship("HMS Sebastian",
-        player,shipClass: ShipClass.mentok,loc: SystemLocation(player.system, playCell));
+        player,shipClass: ShipClass.mentok,loc: SystemLocation(player.system, playCell),
+        weapons: [Weapon.fromStock(StockWeapon.plasmaCannon)]
+    );
     pilotMap[player] = playShip;
     for (System sys in galaxy.systems) {
       for (int i=0;i<rnd.nextInt(3);i++) {

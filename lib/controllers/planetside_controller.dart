@@ -11,32 +11,6 @@ import 'menu_controller.dart';
 class PlanetsideController extends FugueController {
   PlanetsideController(super.fm);
 
-  void goPlan(Planet? planet) { //print("Visiting: $planet");
-    fm.audioController.newTrack(newMood: MusicalMood.planet);
-    OrbitResult result = OrbitResult.newOrbit; //player.newOrbit(planet);
-    if (result == OrbitResult.insufficientEnergy) {
-      fm.outOfEnergy();
-    } else if (result == OrbitResult.newOrbit) {
-      if (planet == fm.galaxy.homeWorld) {
-        fm.endGame("You complete your mission!",home: true);
-      } else {
-        if (planet != null) {
-          //if (player.techLevel() > 50 ? !pirateCheck(numPirates: 1) : !pirateCheck()) return;
-          fm.msgController.addMsg("Orbiting ${planet.name}");
-          fm.msgController.addMsg(planet.description);
-          if (fm.player.tradeTarget?.planet == planet) {
-            fm.msgController.addMsg("You deliver your cargo.  Reward: ${fm.player.tradeTarget?.reward}");
-            fm.player.credits += fm.player.tradeTarget?.reward ?? 0;
-            fm.player.tradeTarget = null;
-          }
-        }
-        fm.pilotController.action(fm.player,ActionType.planetOrbit);
-      }
-    } else {
-      fm.msgController.addMsg("Maintaining orbit around ${planet?.name ?? 'nothing'}",updateAfter: true);
-    }
-  }
-
   void launch() {
     fm.player.planet = null; //still orbiting planet
     fm.menuController.inputMode = InputMode.main;
@@ -49,12 +23,12 @@ class PlanetsideController extends FugueController {
     if (!fm.player.starOne) {
       fm.msgController.addMsg("You must first find Star One.");
     }
-    else if (fm.player.credits < fm.costBroadcast) {
-      fm.msgController.addMsg("You can't afford this (${fm.costBroadcast} credits).");
+    else if (fm.player.credits < fm.shopOptions.costBroadcast) {
+      fm.msgController.addMsg("You can't afford this (${fm.shopOptions.costBroadcast} credits).");
     } else {
       fm.msgController.addMsg("You broadcast a message of insurrection against the Galactic Federation");
       fm.player.broadcasts++;
-      fm.player.credits -= fm.costBroadcast;
+      fm.player.credits -= fm.shopOptions.costBroadcast;
       propaganda(fm.player.system, 0, 4, {fm.player.system});
       fm.heat(25,sighted: fm.player.system);
     }
@@ -125,41 +99,17 @@ class PlanetsideController extends FugueController {
 
   void bioHack({int amount = 1}) {
     if (fm.player.dnaScram < Player.maxDna) {
-      if (fm.player.credits >= fm.costBioHack) {
-        fm.player.credits -= fm.costBioHack;
+      if (fm.player.credits >= fm.shopOptions.costBioHack) {
+        fm.player.credits -= fm.shopOptions.costBioHack;
         fm.player.dnaScram++;
         fm.msgController.addMsg("Dna scrambled (mutation: ${fm.player.dnaScram})");
         fm.pilotController.action(fm.player,ActionType.planet,mod: 2);
       } else {
-        fm.msgController.addMsg("You can't afford this (cost: ${fm.costBioHack} credits).");
+        fm.msgController.addMsg("You can't afford this (cost: ${fm.shopOptions.costBioHack} credits).");
       }
     } else {
       fm.msgController.addMsg("Your system cannot handle further modification.");
     }
   }
 
-  void shoplift() {
-    if (fm.player.planet == null) return;
-    bool success = fm.rnd.nextInt(300) < (fm.player.thievery + 200);
-    if (success) {
-      int n = ((fm.player.techLevel()/3) + (fm.player.planet!.commLvl.index * 12)).floor();
-      int c = fm.rnd.nextInt(n);
-      fm.player.credits += c;
-      fm.msgController.addMsg("You stole $c credits.");
-      fm.pilotController.action(fm.player,ActionType.planet);
-    }
-    else {
-      fm.heat((2 * (fm.player.fedLevel()/12)).ceil());
-      int penalty = fm.rnd.nextInt(67) + 33;
-      int t = fm.rnd.nextInt(3) + 2;
-      fm.msgController.addMsg("You've been caught!  Penalty: $penalty credits and $t turns in jail.");
-      fm.player.credits -= penalty;
-      if (fm.player.credits < 0) {
-        int t2 = (fm.player.credits.abs() / 20).ceil();
-        fm.msgController.addMsg("You can't afford the fine! Penalty: $t2 extra turns in jail.");
-        fm.player.credits = 0;
-      }
-      fm.pilotController.action(fm.player,ActionType.planet,actionAuts: t * 100);
-    }
-  }
 }
