@@ -5,6 +5,8 @@ import 'package:space_fugue/ship.dart';
 import 'package:space_fugue/stock_items/stock_weapons.dart';
 import 'package:space_fugue/systems/ship_system.dart';
 
+import '../item.dart';
+
 enum DamageType {
   light, plasma, fire, kinetic, sonic, gravitron, neutrino, etherial
 }
@@ -58,14 +60,17 @@ class Weapon extends ShipSystem {
   final double dmgMult;
   final DamageType dmgType;
   final WeaponEgo ego;
-  final int clipRate; //pounds of ammo per round of fire
+  final AmmoType? ammoType;
+  final int clipRate; //units of ammo per round of fire
   final int energyRate; //units of energy per round of fire
-  final int fireRate; //aut to complete one round of fire
+  final int fireRate; //aut to complete one round of fire (cooldown)
   final double baseAccuracy; //base chance to hit
   final RangeConfig dmgRangeConfig;
   final RangeConfig accuracyRangeConfig;
   final CritConfig critConfig;
   final GalaxyLevel level;
+  Ammo? ammo;
+  int cooldown = 0;
 
   Weapon(super.name,{
     super.type = ShipSystemType.weapon,
@@ -73,8 +78,8 @@ class Weapon extends ShipSystem {
     required this.dmgDiceSides,
     required this.dmgBase,
     required this.dmgType,
+
     required this.ego,
-    required this.clipRate,
     required this.energyRate,
     required this.fireRate,
     required this.baseAccuracy,
@@ -83,6 +88,8 @@ class Weapon extends ShipSystem {
     this.level = GalaxyLevel.impulse,
     this.dmgMult = 1.0,
     this.critConfig = const CritConfig(),
+    this.clipRate = 0,
+    this.ammoType,
     required super.baseCost,
     required super.baseRepairCost,
     required super.powerDraw,
@@ -123,7 +130,7 @@ class Weapon extends ShipSystem {
     );
   }
 
-  double fire(double dist, math.Random rnd, {Ship? targetShip}) {
+  double fire(double dist, math.Random rnd, {Ship? targetShip, int? clips}) {
     double damage = 0;
     double hitRoll = rnd.nextDouble();
     double effectiveAccuracy = baseAccuracy * accuracyRangeConfig.rangeMultiplier(dist);
@@ -142,16 +149,14 @@ class Weapon extends ShipSystem {
         damage *= critConfig.severity;
       }
     }
-
+    cooldown = fireRate;
     return damage;
   }
 
   double _calcDamage(double dist, math.Random rnd) {
-    double dmg = dmgBase + Rng.rollDice(dmgDice, dmgDiceSides, rnd) * dmgMult;
-    print("Gross damage: $dmg");
+    double dmg = dmgBase + Rng.rollDice(dmgDice, dmgDiceSides, rnd) * dmgMult; //print("Gross damage: $dmg");
     //TODO: egos, etc.
-    final netDamage = dmg * dmgRangeConfig.rangeMultiplier(dist);
-    print("Net damage: $netDamage");
+    final netDamage = dmg * dmgRangeConfig.rangeMultiplier(dist); //print("Net damage: $netDamage");
     return netDamage;
   }
 
@@ -165,7 +170,8 @@ class WeaponData {
   final double dmgMult;
   final DamageType dmgType;
   final WeaponEgo ego;
-  final int clipRate; //pounds of ammo per round of fire
+  final AmmoType? ammoType;
+  final int clipRate; //unit of ammo per round of fire
   final int energyRate; //units of energy per round of fire
   final int fireRate; //aut to complete one round of fire
   final double baseAccuracy; //base chance to hit
@@ -180,8 +186,6 @@ class WeaponData {
     required this.dmgDiceSides,
     required this.dmgBase,
     required this.dmgType,
-    required this.ego,
-    required this.clipRate,
     required this.energyRate,
     required this.fireRate,
     required this.baseAccuracy,
@@ -190,5 +194,49 @@ class WeaponData {
     this.level = GalaxyLevel.impulse,
     this.dmgMult = 1.0,
     this.critConfig = const CritConfig(),
+    this.clipRate = 0,
+    this.ammoType,
+    this.ego = WeaponEgo.none,
   });
+}
+
+enum AmmoType {
+  torpedo,missile,slug,particle
+}
+
+enum AmmoDamageType {
+  plasma, fire, nuclear, antimatter
+}
+
+enum AmmoEgo {
+  heatseeking,lightweight,fedbane
+}
+
+class Ammo extends Item {
+  final AmmoType ammoType;
+  final AmmoDamageType damageType;
+  final double avgDamage;
+  final double volitity;
+  final AmmoEgo ego;
+  final double mass;
+  final int splashRad;
+  final double splashFalloff;
+  final int enchantment;
+  final int maxEnchantment;
+
+  Ammo(super.name, {
+    required this.ammoType,
+    required this.damageType,
+    required this.avgDamage,
+    required this.volitity,
+    required this.ego,
+    required this.mass,
+    required this.splashRad,
+    required this.splashFalloff,
+    required this.enchantment,
+    required this.maxEnchantment,
+    required super.baseCost,
+    required super.rarity,
+  });
+
 }

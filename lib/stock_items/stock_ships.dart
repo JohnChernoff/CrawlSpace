@@ -23,14 +23,14 @@ enum HullType {
 enum ShipClass {
   mentok("Mentok",ShipType.scout,
       [ShipClassSlot(SystemSlot(SystemSlotType.generic,1),8)],
-      100
+      1000
   ),
   galaxy("Galaxy",ShipType.flagship,
       [
         ShipClassSlot(SystemSlot(SystemSlotType.bauchmann,4),4),
         ShipClassSlot(SystemSlot(SystemSlotType.sinclair,2),1),
       ],
-      1000
+      10000
   );
   final String name;
   final ShipType type;
@@ -39,6 +39,6 @@ enum ShipClass {
   const ShipClass(this.name,this.type,this.slots,this.maxMass);
 }
 
-enum ShipType { //TODO: color codes
+enum ShipType { //TODO: ascii/color codes
   scout,skiff,cruiser,destroyer,interceptor,flagship,unknown
 }

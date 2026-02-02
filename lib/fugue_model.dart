@@ -32,6 +32,8 @@ class TextBlock {
   const TextBlock(this.txt,this.color,this.newline);
 }
 
+//TODO: sublight input map, impulse input map, salvaging, AI attacking/movement
+//cargo systems?  passengers, smuggling? cloaking systems?
 class FugueModel with ChangeNotifier {
   Galaxy galaxy;
   late GalaxyGraph galaxyGraph; //TODO: replace with https://pub.dev/packages/directed_graph
@@ -109,15 +111,28 @@ class FugueModel with ChangeNotifier {
     pilotMap[player] = playShip;
     for (System sys in galaxy.systems) {
       for (int i=0;i<rnd.nextInt(3);i++) {
-        Pilot pilot = Pilot(faker.name.fullName(),sys);
-        final cell = sys.map.rndCell(rnd);
-        Ship ship = Ship("${Rng.rndColorName(rnd)}${faker.animal.snake()}",
-            pilot,shipClass: ShipClass.mentok,loc: SystemLocation(sys, cell));
-        pilotMap[pilot] = ship;
-        pilots.add(pilot);
+        addShip(Ship("${Rng.rndColorName(rnd)}${faker.animal.snake()}",
+            Pilot(faker.name.fullName(),sys),
+            shipClass: ShipClass.mentok,
+            loc: SystemLocation(sys, sys.map.rndCell(rnd))));
       }
     }
     update(); //galaxy.rndTest();
+  }
+
+  void addShip(Ship ship) {
+    if (ship.pilot != null) {
+      pilotMap[ship.pilot!] = ship;
+      pilots.add(ship.pilot!);
+    }
+  }
+
+  void removeShip(Ship ship) {
+    for (final s in pilotMap.values) {
+      if (s.targetShip == ship) s.targetShip = null;
+    }
+    pilotMap.remove(ship.pilot);
+    ship.loc.level.map.shipMap[ship.loc.cell]?.remove(ship);
   }
 
   void addEdge(System s1, System s2) {

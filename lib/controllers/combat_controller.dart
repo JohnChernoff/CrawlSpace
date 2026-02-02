@@ -15,16 +15,19 @@ class CombatController extends FugueController {
       }
       final cell = ship.loc.level.map.cells[target];
       if (cell is ImpulseCell) { //TODO: sector-ranged weapons?
-        double? dam = ship.fireWeapon(cell, fm.rnd, ship: ship.targetShip); //TODO: determine auts
-        if (dam != null && ship.targetShip != null) {
-          if (dam > 0) {
-            fm.msgController.addMsg("${ship.targetShip} takes $dam damage");
-            if (ship.targetShip!.takeDamage(dam)) explode(ship.targetShip!,[ship]);
+        final result = ship.fireWeapons(cell, fm.rnd, ship: ship.targetShip);
+        if (result != null && ship.targetShip != null) {
+          if (result.minCool == null && ship == fm.playerShip) {
+            fm.msgController.addMsg("No weapons ready");
+          }
+          else if (result.dmg > 0) {
+            fm.msgController.addMsg("${ship.targetShip} takes ${result.dmg} damage");
+            if (ship.targetShip!.takeDamage(result.dmg)) explode(ship.targetShip!);
           }
           else {
             fm.msgController.addMsg("${ship.name} misses!");
           }
-          fm.pilotController.action(ship.pilot, ActionType.combat);
+          fm.pilotController.action(ship.pilot, ActionType.combat, actionAuts: 1); //or result.minCool?
         }
       } else {
         fm.msgController.addMsg("Wrong firing level");
@@ -32,7 +35,7 @@ class CombatController extends FugueController {
     }
   }
 
-  void explode(Ship ship, List<Ship> scanningShips) {
+  void explode(Ship ship) {
     fm.msgController.addMsg("${ship.name} explodes!");
     for (final cmp in ship.installedSystems.where((s) => s.system != null)) {
       if (fm.rnd.nextBool()) {
@@ -42,11 +45,7 @@ class CombatController extends FugueController {
         }
       }
     }
-    fm.pilotMap.remove(ship.pilot);
-    ship.loc.level.map.shipMap[ship.loc.cell]?.remove(ship);
-    for (final s in scanningShips) {
-      s.targetShip = null;
-    }
+    fm.removeShip(ship);
     fm.update();
   }
 }

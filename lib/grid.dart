@@ -80,4 +80,36 @@ class Grid<T extends GridCell> {
     return list;
   }
 
+  List<T> greedyPath(
+      T start,
+      T goal,
+      int dist,
+      int maxSteps,
+      Random rnd,
+      ) {
+    final path = <T>[];
+    T current = start;
+
+    for (int i = 0; i < maxSteps; i++) {
+      if (current == goal) break;
+
+      final candidates = getAdjacentCells(current, distance: dist);
+
+      // Sort by distance to goal (with noise!)
+      candidates.sort((a, b) {
+        final da = a.coord.distance(goal.coord) + rnd.nextDouble() * 0.2;
+        final db = b.coord.distance(goal.coord) + rnd.nextDouble() * 0.2;
+        return da.compareTo(db);
+      });
+
+      final next = candidates.first;
+      if (path.contains(next)) break; // avoid loops
+
+      path.add(next);
+      current = next;
+    }
+
+    return path;
+  }
+
 }

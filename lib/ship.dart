@@ -1,4 +1,6 @@
 import 'dart:math';
+import 'package:collection/collection.dart';
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:space_fugue/coord_3d.dart';
 import 'package:space_fugue/fugue_model.dart';
 import 'package:space_fugue/pilot.dart';
@@ -31,12 +33,20 @@ class InstalledSystem {
   InstalledSystem(this.slot,this.system);
 }
 
+class FireResult {
+  double dmg;
+  int? minCool;
+  bool ammoWarn;
+  FireResult(this.dmg,this.minCool,this.ammoWarn);
+}
+
 class Ship {
   ShipClass shipClass;
   String name;
   Pilot? pilot;
   Pilot owner;
-  List<InstalledSystem> installedSystems = [];
+  List<InstalledSystem> installedSystems = []; //rename to shipSlots?
+  Map<Ammo,int> ammoMap = {};
   double hullDamage = 0;
   ShipLocation loc;
   int impulseMapSize = 8;
@@ -47,6 +57,7 @@ class Ship {
   Ship? interceptShip;
   Coord3D? targetCoord;
   Coord3D? interceptCoord;
+  List<GridCell> currentPath = [];
 
   Ship(this.name, this.owner, {
     required this.shipClass,
@@ -98,6 +109,10 @@ class Ship {
     loc.level.addShip(this,loc.cell);
   }
 
+  Iterable<ShipSystem> get getAllInstalledSystems {
+    return installedSystems.where((s) => (s.system != null)).map((i) => i.system!);
+  }
+
   Iterable<ShipSystem> getInstalledSystems(List<ShipSystemType> types) {
     return installedSystems.where((s) => types.contains(s.system?.type)).map((i) => i.system!);
   }
@@ -111,7 +126,11 @@ class Ship {
     return false;
   }
 
+  double distanceFrom(Ship ship) => ship.loc.cell.coord.distance(loc.cell.coord);
+  double distanceFromCoord(Coord3D c) => c.distance(loc.cell.coord);
+
   double get hullRemaining  => (hullStrength-hullDamage);
+  bool get intact => hullRemaining > 0;
 
   double get currentHullPercentage {
     double s = hullStrength;
@@ -146,6 +165,14 @@ class Ship {
       }
     }
     return null;
+  }
+
+  Iterable<Weapon> get availableWeapons {
+    return getInstalledSystems([ShipSystemType.weapon]).where((w) => w is Weapon && w.active).map((s) => s as Weapon);
+  }
+
+  Iterable<Weapon> get readyWeapons {
+    return availableWeapons.where((w) => w.cooldown == 0);
   }
 
   bool burnEnergy(double e) {
@@ -214,18 +241,64 @@ class Ship {
     return "${hullStrength - hullDamage} hull remaining";
   }
 
-  double? fireWeapon(ImpulseCell target, Random rnd, {Ship? ship}) {
+  Weapon? get primaryWeapon => availableWeapons.sorted((w1,w2) => w1.baseCost - w2.baseCost).firstOrNull;
+
+  FireResult? fireWeapons(ImpulseCell target, Random rnd, {Ship? ship}) {
     final l = loc;
     if (l is ImpulseLocation && (ship == null || ship.loc.sameLevel(loc))) {
       double dmg = 0;
-      for (final weapon in getInstalledSystems([ShipSystemType.weapon])) {
-        if (weapon is Weapon && weapon.active) {
-          dmg += weapon.fire(l.cell.coord.distance(target.coord), rnd, targetShip: ship);
+      int? minCool;
+      bool ammoWarn = false;
+      for (final weapon in readyWeapons) {
+        bool ammoOK = true; int? clips;
+        if (weapon.ammo != null) {
+          ammoOK = ammoMap.containsKey(weapon.ammo) && ammoMap[weapon.ammo]! > 0;
+          if (ammoOK) {
+            final prevAmmo = ammoMap[weapon.ammo]!;
+            final newAmmo = max(prevAmmo - weapon.clipRate,0);
+            ammoMap[weapon.ammo!] = newAmmo;
+            clips = prevAmmo - newAmmo;
+          } else {
+            ammoWarn = true;
+          }
+        }
+        if (ammoOK) {
+          dmg += weapon.fire(l.cell.coord.distance(target.coord), rnd, targetShip: ship, clips: clips);
+          if (minCool == null || minCool > weapon.cooldown) minCool = weapon.cooldown;
         }
       }
-      return dmg;
-    } return null;
+      return FireResult(dmg,minCool,ammoWarn);
+    }
+    return null;
   }
+
+  int get turnsUntilWeaponReady {
+    int t = 999;
+    for (final w in getInstalledSystems([ShipSystemType.weapon])) {
+      if (w is Weapon && w.active) {
+        if (w.cooldown == 0) return 0;
+        if (w.cooldown < t) t = w.cooldown;
+      }
+    }
+    return t;
+  }
+
+  bool addAmmo(Ammo ammo, int n) {
+    if (okMass(ammo.mass * n)) return false;
+    ammoMap[ammo] = ammoMap.containsKey(ammo) ? ammoMap[ammo]! + n : n;
+    return true;
+  }
+
+  double get currentMass {
+    double m = 0;
+    for (final ammo in ammoMap.keys) {
+      m += ammoMap[ammo]! * ammo.mass;
+    }
+    return (getAllInstalledSystems.sumBy((s) => s.mass)) + m;
+  }
+
+  double get availableMass => shipClass.maxMass - currentMass;
+  bool okMass(double m) => availableMass < m;
 
   //true if intercepted a ship in a sector
   bool move(GridCell destination, {bool toSystem = false, ImpulseLevel? impLevel }) {
@@ -260,24 +333,28 @@ class Ship {
         burnEnergy(e); //totalBurn += e;
       }
     } //print("$name: Net energy per tick: ${recharge - totalBurn}");
+
+    for (final w in getInstalledSystems([ShipSystemType.weapon])) {
+      if (w is Weapon && w.cooldown > 0) w.cooldown--;
+    }
   }
 
   List<TextBlock> status() {
     List<TextBlock> blocks = [];
     blocks.add(TextBlock(name,Colors.green,true));
-    blocks.add(TextBlock("Hull: $hullRemaining ",Colors.green,false));
-    blocks.add(TextBlock("%: $currentHullPercentage",Colors.blue,true));
-    blocks.add(TextBlock("Shields: $currentShieldStrength, ",Colors.green,false));
-    blocks.add(TextBlock("%: $currentShieldPercentage",Colors.blue,true));
+    blocks.add(TextBlock("Hull: ${hullRemaining.toStringAsFixed(2)} ",Colors.green,false));
+    blocks.add(TextBlock("%: ${currentHullPercentage.toStringAsFixed(2)}",Colors.blue,true));
+    blocks.add(TextBlock("Shields: ${currentShieldStrength.toStringAsFixed(2)}, ",Colors.green,false));
+    blocks.add(TextBlock("%: ${currentShieldPercentage.toStringAsFixed(2)}",Colors.blue,true));
     blocks.add(TextBlock("Energy: ${getCurrentEnergy().toStringAsFixed(2)}, ",Colors.green,false));
-    blocks.add(TextBlock("%: ${currentEnergyPercentage.round()}",Colors.blue,true));
+    blocks.add(TextBlock("%: ${currentEnergyPercentage.round().toStringAsFixed(2)}",Colors.blue,true));
     for (final s in installedSystems) {
       if (s.system != null) {
         blocks.add(TextBlock("${s.system!.name} ${s.system!.active ? '+' : '-'}",Colors.white,true));
       }
     }
     if (targetCoord != null) blocks.add(TextBlock("Scanning Coord: $targetCoord", Colors.orangeAccent, true));
-    if (targetShip != null) {
+    if (playship && (targetShip != null && targetShip!.npc)) {
       blocks.add(const TextBlock("Scanning Ship: ", Colors.redAccent, true));
       blocks.addAll(targetShip!.status());
     }

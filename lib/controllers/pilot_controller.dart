@@ -1,9 +1,13 @@
 import 'dart:math';
 
+import 'package:collection/collection.dart';
 import 'package:space_fugue/controllers/fugue_controller.dart';
+import 'package:space_fugue/impulse.dart';
+import 'package:space_fugue/location.dart';
 import '../pilot.dart';
 import '../rng.dart';
 import '../ship.dart';
+import '../systems/weapons.dart';
 
 enum ActionType {
   movement(10,1,1,false),
@@ -63,7 +67,34 @@ class PilotController extends FugueController {
     ship.tick(fm.rnd);
     Pilot? pilot = ship.pilot; if (pilot == null) return;
     if (pilot.ready) {
-      fm.movementController.vectorShip(ship, Rng.rndUnitVector(fm.rnd));
+      bool firedWeapon = false;
+      final playShip = fm.playerShip;
+      if (playShip != null && pilot.hostile && ship.loc.level.getAllShips().contains(playShip)) {
+        ship.targetShip = playShip;
+        final loc = ship.loc; if (loc is ImpulseLocation) {
+            Weapon? w = ship.primaryWeapon; if (w != null) {
+              //print("NPC combat...${w.accuracyRangeConfig.idealRange}, ${ship.distanceFrom(playShip)}");
+              if ((w.accuracyRangeConfig.idealRange - ship.distanceFrom(playShip)).abs() > 1) {
+                final idealCells = ship.loc.level.map.cells.values
+                    .where((c) => playShip.distanceFromCoord(c.coord) < 1)
+                    .sorted((c1,c2) => ship.distanceFromCoord(c2.coord).compareTo(ship.distanceFromCoord(c1.coord)));
+                ship.currentPath = ship.loc.level.map.greedyPath(ship.loc.cell, idealCells.first, 1, 3, fm.rnd);
+              } else {
+                fm.combatController.fire(ship);
+              }
+            } else { //run!
+              print("Fleeing!");
+              //TODO: fleeing path
+            }
+        }
+      }
+      if (!firedWeapon) {
+        if (ship.currentPath.isNotEmpty) {
+          fm.movementController.moveShip(ship, ship.currentPath.removeAt(0).coord);
+        } else {
+          fm.movementController.vectorShip(ship, Rng.rndUnitVector(fm.rnd));
+        }
+      }
     }
   }
 }
