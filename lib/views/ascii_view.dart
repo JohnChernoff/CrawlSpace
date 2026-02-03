@@ -21,7 +21,7 @@ class AsciiViewState extends State<AsciiView> {
         Expanded(child: Container(color: Colors.black, child: TextBlockWidget(
           widget.fugueModel.scannerController.scannerText()
         ))),
-        AspectRatio(aspectRatio: 1, child: AsciiGrid(widget.fugueModel)),
+        AspectRatio(aspectRatio: 2, child: AsciiGrid(widget.fugueModel)),
         Expanded(child: Container(color: Colors.black, child: Padding(padding: const EdgeInsets.only(left: 8), child: TextBlockWidget(
           widget.fugueModel.scannerController.statusText(),
         ))))

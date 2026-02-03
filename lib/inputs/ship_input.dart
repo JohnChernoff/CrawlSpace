@@ -6,6 +6,8 @@ import '../coord_3d.dart';
 import '../fugue_model.dart';
 import 'general_input.dart';
 
+enum DepthViewOption {showAll,showClosest,toggle}
+
 class DirectionIntent extends Intent {
   final int dx,dy,dz;
   const DirectionIntent(this.dx,this.dy,this.dz);
@@ -55,6 +57,11 @@ class ScrapIntent extends Intent {
 
 class LoiterIntent extends Intent {
     const LoiterIntent();
+}
+
+class DepthViewIntent extends Intent {
+  final DepthViewOption depthView;
+  const DepthViewIntent(this.depthView);
 }
 
 const downComboKey = LogicalKeyboardKey.shift;
@@ -172,6 +179,9 @@ class ShipInput extends StatelessWidget with GeneralInputMixin {
         LogicalKeySet(LogicalKeyboardKey.keyJ):
         const ScrapIntent(false),
 
+        LogicalKeySet(LogicalKeyboardKey.slash):
+        const DepthViewIntent(DepthViewOption.toggle),
+
       },
       actions: {
         ...generalActions,
@@ -249,6 +259,15 @@ class ShipInput extends StatelessWidget with GeneralInputMixin {
                 fm.combatController.scrap();
               } else {
                 fm.combatController.jettison(fm.playerShip);
+              }
+              return null;
+            }
+        ),
+        DepthViewIntent: CallbackAction<DepthViewIntent>(
+            onInvoke: (intent) {
+              if (intent.depthView == DepthViewOption.toggle) {
+                fm.scannerController.showAllCellsOnZPlane = !fm.scannerController.showAllCellsOnZPlane;
+                fm.update();
               }
               return null;
             }

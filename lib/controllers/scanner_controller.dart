@@ -36,6 +36,7 @@ class ScannerController extends FugueController {
   List<GridCell> currentScan = [];
   GridCell? currentScanSelection;
   int currentScannedShipIndex = 0;
+  bool showAllCellsOnZPlane = true;
 
   List<TextBlock> statusText() {
     List<TextBlock> blocks = []; //blocks.add(const TextBlock("Status: ",Colors.white,true));
