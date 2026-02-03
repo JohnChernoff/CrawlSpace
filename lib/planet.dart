@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:space_fugue/descriptors.dart';
+import 'package:space_fugue/shop.dart';
 
 enum DistrictLvl { none("-"), light("+"), medium("++"), heavy("+++");
   const DistrictLvl(this.shortString);
@@ -21,6 +22,7 @@ class Planet {
   int distance = 50; //TODO: calculate relative distances?
   bool known = false;
   String description = "";
+  Shop? shop;
 
   Planet(this.name,this.fedLvl,this.techLvl,this.dustLvl,this.commLvl,this.resLvl,this.age, this.environment, this.export);
 

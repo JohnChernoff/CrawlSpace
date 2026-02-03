@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import '../fugue_model.dart';
 
 enum PlanetAction {
-  spy,hack,scout,tavern,trade,broadcast,dna,repair,upgrade
+  spy,hack,scout,tavern,trade,broadcast,dna,repair,upgrade,shop
 }
 
 class LaunchIntent extends Intent {
@@ -42,6 +42,8 @@ class PlanetInput extends StatelessWidget {
         const PlanetActionIntent(PlanetAction.repair),
         LogicalKeySet(LogicalKeyboardKey.keyU):
         const PlanetActionIntent(PlanetAction.upgrade),
+        LogicalKeySet(LogicalKeyboardKey.keyB):
+        const PlanetActionIntent(PlanetAction.shop),
         LogicalKeySet(LogicalKeyboardKey.keyG):
         const PlanetActionIntent(PlanetAction.dna),
         LogicalKeySet(LogicalKeyboardKey.keyL):
@@ -50,7 +52,28 @@ class PlanetInput extends StatelessWidget {
       actions: {
         PlanetActionIntent: CallbackAction<PlanetActionIntent>(
             onInvoke: (intent) {
-              fm.msgController.addMsg("You selected: ${intent.action}");
+              switch(intent.action) {
+                case PlanetAction.spy:
+                  fm.planetsideController.spy();
+                case PlanetAction.hack:
+                  fm.planetsideController.hack();
+                case PlanetAction.scout:
+                  fm.planetsideController.scout();
+                case PlanetAction.tavern:
+                  fm.planetsideController.spy();
+                case PlanetAction.trade:
+                  fm.planetsideController.getTradeMission();
+                case PlanetAction.broadcast:
+                  fm.planetsideController.broadcast();
+                case PlanetAction.dna:
+                  fm.planetsideController.bioHack();
+                case PlanetAction.repair:
+                  //fm.planetsideController.re();
+                case PlanetAction.upgrade:
+                  //fm.planetsideController.up();
+                case PlanetAction.shop:
+                  fm.planetsideController.shop();
+              }
               return null;
             }),
         LaunchIntent: CallbackAction<LaunchIntent>(

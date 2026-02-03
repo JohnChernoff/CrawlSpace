@@ -9,7 +9,6 @@ abstract class LetterMenuInput extends StatelessWidget {
   const LetterMenuInput(this.child, this.fm, {super.key});
 
   KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
-
     final char = event.character?.toLowerCase();
 
     // Check if it's a letter a-m
@@ -24,7 +23,8 @@ abstract class LetterMenuInput extends StatelessWidget {
 
     // Handle escape/cancel
     if (event.logicalKey == LogicalKeyboardKey.keyX) {
-      fm.menuController.cancelToMain();
+      print("X handled");
+      fm.menuController.exitMode();
       return KeyEventResult.handled;
     }
 

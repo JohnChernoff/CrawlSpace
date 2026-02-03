@@ -95,23 +95,23 @@ class Ship {
     subEngine ??= Engine.fromStock(StockEngine.basicFedSublight);
     impEngine ??= Engine.fromStock(StockEngine.basicFedImpulse);
     shield ??= Shield.fromStock(StockShield.basicEnergon);
-    weapons ??= [Weapon.fromStock(StockWeapon.basicLaser)];
+    weapons ??= [Weapon.fromStock(StockWeapon.fedLaser1)];
 
-    inventory.add(generator);
+    addToInventory(generator);
     installSystem(generator);
 
-    inventory.add(hyperEngine);
+    addToInventory(hyperEngine);
     installSystem(hyperEngine);
     hyperEngine.active = false;
 
-    inventory.add(subEngine);
+    addToInventory(subEngine);
     installSystem(subEngine);
 
-    inventory.add(impEngine);
+    addToInventory(impEngine);
     installSystem(impEngine);
     impEngine.active = false;
 
-    inventory.add(shield);
+    addToInventory(shield);
     installSystem(shield);
 
     for (final w in weapons) {
@@ -120,6 +120,12 @@ class Ship {
     }
 
     loc.level.addShip(this,loc.cell);
+  }
+
+  bool addToInventory(Item i) {
+    if (i is ShipSystem && availableMass < i.mass) return false;
+    inventory.add(i);
+    return true;
   }
 
   Iterable<ShipSystem> get getAllInstalledSystems {

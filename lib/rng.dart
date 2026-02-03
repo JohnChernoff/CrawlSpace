@@ -38,6 +38,20 @@ class Rng {
     return rnd.nextBool() ? 0 : rnd.nextBool() ? 1 : -1;
   }
 
+  static int poissonRandom(double lambda) { // Simple Poisson approximation
+    double L = exp(-lambda);
+    int k = 0;
+    double p = 1.0;
+    final rnd = Random();
+
+    do {
+      k++;
+      p *= rnd.nextDouble();
+    } while (p > L);
+
+    return k - 1;
+  }
+
 
   static int biasedRndInt(Random rnd, {
     required int mean,

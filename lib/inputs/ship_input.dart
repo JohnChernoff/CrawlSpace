@@ -184,12 +184,6 @@ class ShipInput extends StatelessWidget with GeneralInputMixin {
             return null;
           },
         ),
-        OpenInventoryIntent: CallbackAction(
-          onInvoke: (_) {
-            fm.menuController.inputMode = InputMode.inventory;
-            return null;
-          },
-        ),
         OpenPlanetMenuIntent: CallbackAction(
           onInvoke: (_) {
             fm.layerTransitController.planetFall();

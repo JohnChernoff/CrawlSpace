@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:space_fugue/controllers/audio_controller.dart';
 import 'package:space_fugue/controllers/fugue_controller.dart';
 import 'package:space_fugue/controllers/pilot_controller.dart';
@@ -33,7 +34,7 @@ class LayerTransitController extends FugueController {
     final cell = ship.loc.cell; if (cell is! SectorCell) {
       fm.msgController.addMsg("Wrong layer!"); return;
     }
-    final planet = cell.planet; if (planet == null) {
+    final planet = fm.player.planet = cell.planet; if (planet == null) {
       fm.msgController.addMsg("No planet!"); return;
     }
 
@@ -81,7 +82,7 @@ class LayerTransitController extends FugueController {
 
   void hyperSpace(String letter) {
     if (currentLinkMap.containsKey(letter)) {
-      fm.menuController.inputMode = InputMode.main;
+      fm.menuController.fm.menuController.exitInputMode();
       newSystem(fm.player, currentLinkMap[letter]!);
     }
   }

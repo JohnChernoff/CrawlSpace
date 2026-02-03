@@ -207,7 +207,7 @@ enum AmmoType {
 }
 
 enum AmmoDamageType {
-  plasma, fire, nuclear, antimatter
+  plasma,fire,nuclear,antimatter
 }
 
 enum AmmoEgo {

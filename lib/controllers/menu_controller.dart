@@ -1,13 +1,56 @@
+import 'dart:async';
+
 import 'package:space_fugue/controllers/fugue_controller.dart';
+import '../inputs/confirm_input.dart';
 import '../planet.dart';
+import '../shop.dart';
 import '../system.dart';
 
-enum InputMode {main,inventory,hyperspace,planet,repair,techShop,broadcast,dnaShop,tavern}
+enum InputMode {main,inventory,hyperspace,planet,repair,shop,broadcast,dnaShop,tavern,confirm}
+
+class ActionCompleter<T> {
+  final Completer<T> _completer = Completer<T>();
+  final Function() _onComplete;
+
+  ActionCompleter(this._onComplete);
+
+  Future<T> get future => _completer.future;
+
+  void complete([T? value]) {
+    _onComplete();
+    _completer.complete(value);
+  }
+
+  void completeError(Object error, [StackTrace? stackTrace]) {
+    _onComplete();
+    _completer.completeError(error, stackTrace);
+  }
+}
 
 class MenuController extends FugueController {
-  InputMode inputMode = InputMode.main;
+  ActionCompleter<ConfirmAction>? confirmationCompleter;
+  List<InputMode> inputStack = [InputMode.main];
+  InputMode get inputMode => inputStack.last;
 
   MenuController(super.fm);
+
+  void newInputMode(InputMode mode) {
+    if (inputMode != mode) {
+      inputStack.add(mode);
+      fm.update();
+    }
+  }
+
+  InputMode? exitInputMode() {
+    final previousMode = (inputStack.length > 1) ? inputStack.removeLast() : null;
+    if (previousMode != null) {
+      if (previousMode == InputMode.shop && fm.player.planet != null) {
+        showPlanetMenu(fm.player.planet!);
+      }
+    }
+    fm.update();
+    return previousMode;
+  }
 
   void showHyperSpaceMenu(Map<String,System> currentLinkMap) {
     StringBuffer sb = StringBuffer();
@@ -17,11 +60,10 @@ class MenuController extends FugueController {
     }
     sb.writeln("x: cancel");
     fm.msgController.addMsg(sb.toString());
-    inputMode = InputMode.hyperspace;
+    newInputMode(InputMode.hyperspace);
   }
 
   void showPlanetMenu(Planet planet) {
-    inputMode = InputMode.planet;
     StringBuffer sb = StringBuffer(); //sb.writeln(planet.description);
     if (planet.resLvl.atOrAbove(DistrictLvl.light)) {
       sb.writeln("(s)cout the system");
@@ -52,11 +94,29 @@ class MenuController extends FugueController {
     }
     sb.writeln("(l)aunch");
     fm.msgController.addMsg(sb.toString());
+    newInputMode(InputMode.planet);
   }
 
-  void cancelToMain() {
-    inputMode = InputMode.main;
-    fm.update();
+  void displayShopMenu(Shop shop, {bool changeInputMode = true}) {
+    StringBuffer sb = StringBuffer();
+    for (int i=0; i<shop.items.length;i++) {
+      final item = shop.items.elementAt(i);
+      sb.writeln("${String.fromCharCode(i + 97)}: ${item.name} , ${item.baseCost}");
+    }
+    sb.writeln("e(x)it shop");
+    fm.msgController.addMsg(sb.toString());
+    if (changeInputMode) newInputMode(InputMode.shop);
+  }
+
+  void exitMode() { //fm.msgController.addMsg("Exiting mode: $inputMode");
+    exitInputMode();
+  }
+
+  Future<ConfirmAction> confirmChoice(String msg) {
+    fm.msgController.addMsg(msg);
+    newInputMode(InputMode.confirm);
+    confirmationCompleter = ActionCompleter(exitInputMode);
+    return confirmationCompleter!.future;
   }
 
 }

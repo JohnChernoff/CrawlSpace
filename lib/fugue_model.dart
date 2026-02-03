@@ -111,7 +111,7 @@ class FugueModel with ChangeNotifier {
     final playCell = player.system.map.rndCell(rnd);
     Ship playShip = Ship("HMS Sebastian",
         player,shipClass: ShipClass.mentok,loc: SystemLocation(player.system, playCell),
-        weapons: [Weapon.fromStock(StockWeapon.plasmaCannon)]
+        weapons: [Weapon.fromStock(StockWeapon.fedLaser3)]
     );
     pilotMap[player] = playShip;
     for (System sys in galaxy.systems) {
