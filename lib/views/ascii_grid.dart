@@ -39,14 +39,15 @@ class _AsciiGridState extends State<AsciiGrid> {
 
   @override
   Widget build(BuildContext context) {
+    double cellScaleFactor = 1;
     return LayoutBuilder(builder: (ctx,bc) {
       final playship = widget.fugueModel.playerShip;
       if (playship != null) {
         final map = playship.loc.level.map;
         List<Widget> stacks = [];
         int mapSize = playship.loc.level.map.size;
-        final cellWidth = (bc.maxWidth / mapSize) * .75;
-        final cellHeight = bc.maxHeight / mapSize * .75;
+        final cellWidth = (bc.maxWidth / mapSize) * cellScaleFactor;
+        final cellHeight = (bc.maxHeight / mapSize) * cellScaleFactor;
         final scannedCell =
             widget.fugueModel.playerShip?.targetShip?.loc.cell ??
                 widget.fugueModel.scannerController.currentScanSelection;
@@ -61,39 +62,14 @@ class _AsciiGridState extends State<AsciiGrid> {
                   final z = widget.cell.coord.z;
                   final maxZ = mapSize - 1;
                   final t = maxZ > 0 ? z / maxZ : 0.0;
-
-                  // Scale: 0.3 at Z=0, 1.0 at Z=max
-                  //final depthScale = 0.3 + (0.7 * t);
-
-                  final curvedT = math.pow(t, 0.6).toDouble(); // <1 boosts near values
-                  final depthScale = 0.35 + 0.65 * curvedT;
-
-                  // Character width estimation (monospace: roughly 0.6 * fontSize)
-                  final baseFontSize = cellHeight / 2;
-                  final fontSize = baseFontSize * depthScale;
-                  final charWidth = fontSize * 0.6;  // monospace char width
-
-                  // Position so:
-                  // - Smallest char (Z=0) left edge is at 0
-                  // - Largest char (Z=max) right edge is at cellWidth
-                  final minCharWidth = (baseFontSize * 0.3) * 0.6;  // smallest char width
-                  final maxCharWidth = (baseFontSize * 1.0) * 0.6;  // largest char width
-
-                  // Linear interpolation: at t=0, leftEdge=0; at t=1, leftEdge=cellWidth-maxCharWidth
-                  final leftEdge = (cellWidth - maxCharWidth) * t;
-                  final xPos = leftEdge + charWidth / 2;  // center of char
-
-                  // Similarly for Y: top at 0, bottom at cellHeight
-                  final topEdge = (cellHeight - (baseFontSize * 1.0)) * t;
-                  final yPos = topEdge + (fontSize / 2);
-
+                  final cellSize = cellHeight / 2;
+                  final xPos = (cellWidth - cellSize) * t;
+                  final yPos = (cellHeight - cellSize) * t;
                   return Positioned(
-                      left: xPos,
-                      top: yPos,
-                      child: Transform.scale(
-                          scale: depthScale,
-                          alignment: Alignment.center,
-                          child: widget));
+                    left: xPos,
+                    top: yPos,
+                    child: widget,
+                  );
                 })),
             ));
             }

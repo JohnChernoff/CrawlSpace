@@ -21,10 +21,14 @@ class GridCellWidgetState extends State<GridCellWidget> {
   Widget build(BuildContext context) {
     final level = widget.playShip.loc.level;
     final maxZ = level.map.size - 1;
-    final z = widget.cell.coord.z;
-    final t = z / maxZ; // normalized 0.0 → 1.0
-    final depthFactor = 0.5 + (0.9 * t);
-    final opacity = 0.35 + 0.65 * t;
+
+    final rawT = widget.cell.coord.z / maxZ;
+    final t = sqrt(rawT); // boosts near depths
+    final depthFactor = 0.6 + 0.6 * t; // min 0.6, max 1.2
+    //final depthFactor = 0.5 + (0.9 * t);
+
+    //final opacity = 0.35 + 0.65 * t;
+    final opacity = 0.55 + 0.45 * t;
     //final offsetY = (1 - t) * 24; // stronger offset for ASCII
     final distFromPlayer = widget.cell.coord.distance(widget.playShip.loc.cell.coord);
     final zDistFromPlayer = (widget.cell.coord.z - widget.playShip.loc.cell.coord.z).abs();
@@ -36,9 +40,10 @@ class GridCellWidgetState extends State<GridCellWidget> {
         Colors.black,  // far away
         Colors.yellowAccent,      // close
         proximityFactor // * t // but also respect z-depth
-    ); //final textColor = Color.lerp(Colors.grey[500], Colors.black, t);
+    )!; //final textColor = Color.lerp(Colors.grey[500], Colors.black, t);
     final baseFontSize = widget.size * 0.8; // tweak 0.7–0.9
-    final fontSize = baseFontSize * depthFactor;
+    final fontSize = max(baseFontSize * depthFactor, widget.size * 0.45);
+
     return Container(
         width: widget.size,
         height: widget.size,
@@ -48,7 +53,7 @@ class GridCellWidgetState extends State<GridCellWidget> {
     ), child:  Center(
       child: Opacity(
         opacity: widget.color == null ? opacity : 1,
-        child: getGridChar(fontSize,textColor!),
+        child: getGridChar(fontSize,textColor),
       ),
     ));
   }
@@ -76,7 +81,7 @@ class GridCellWidgetState extends State<GridCellWidget> {
     }
     if (widget.ships.isNotEmpty) {
       if (widget.ships.first.playship) {
-        stack.add(  Text("@", style: style.copyWith(color: Colors.blue)));
+        stack.add(Text("@", style: style.copyWith(color: Colors.blue)));
       }
       else {
         stack.add(Text("h", style: style));
