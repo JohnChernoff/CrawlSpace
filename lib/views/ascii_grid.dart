@@ -1,16 +1,7 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:space_fugue/coord_3d.dart';
 import 'package:space_fugue/grid.dart';
-import 'package:space_fugue/inputs/confirm_input.dart';
-import 'package:space_fugue/inputs/hyper_input.dart';
-import 'package:space_fugue/inputs/inventory_input.dart';
-import 'package:space_fugue/inputs/planet_input.dart';
-import 'package:space_fugue/inputs/shop_input.dart';
-import '../controllers/menu_controller.dart';
 import '../fugue_model.dart';
-import '../inputs/ship_input.dart';
 import '../ship.dart';
 import 'ascii_gridcell_widget.dart';
 
@@ -75,14 +66,14 @@ class _AsciiGridState extends State<AsciiGrid> {
             ));
           }
         }
-        return buildInputLayer(child: Container(color: Colors.white, width: bc.maxWidth, height: bc.maxHeight,
+        return Container(color: Colors.white, width: bc.maxWidth, height: bc.maxHeight,
             child: Padding(padding: const EdgeInsets.all(1.0), child: GridView.count(
-          mainAxisSpacing: 1,
-          crossAxisSpacing: 1,
-          crossAxisCount: map.size,
-          childAspectRatio: bc.maxWidth / bc.maxHeight,
-          children: stacks,
-        ))),fugueModel: widget.fugueModel);
+              mainAxisSpacing: 1,
+              crossAxisSpacing: 1,
+              crossAxisCount: map.size,
+              childAspectRatio: bc.maxWidth / bc.maxHeight,
+              children: stacks,
+            )));
       }
       return const Text("No ship");
     });
@@ -124,32 +115,4 @@ List<GridCellWidget> createStack(int x, int y, double size, Grid<GridCell> map, 
   return cellWidgets;
 }
 
-Widget buildInputLayer({required Widget child, required FugueModel fugueModel}) {
-  switch (fugueModel.menuController.inputMode) {
-    case InputMode.main:
-      return ShipInput(child,fugueModel);
-    case InputMode.inventory:
-      return InventoryInput(child, fugueModel); //InventoryInput(child);
-    case InputMode.planet:
-      return PlanetInput(child, fugueModel);
-    case InputMode.hyperspace:
-      return HyperSpaceInput(child, fugueModel);
-    case InputMode.shop:
-      return ShopInput(child,fugueModel);
-    case InputMode.repair:
-      // TODO: Handle this case.
-      throw UnimplementedError();
-    case InputMode.broadcast:
-      // TODO: Handle this case.
-      throw UnimplementedError();
-    case InputMode.dnaShop:
-      // TODO: Handle this case.
-      throw UnimplementedError();
-    case InputMode.tavern:
-      // TODO: Handle this case.
-      throw UnimplementedError();
-    case InputMode.confirm:
-      return ConfirmInput(child, fugueModel);
-  }
-}
 

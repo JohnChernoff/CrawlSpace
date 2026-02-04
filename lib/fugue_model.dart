@@ -35,7 +35,6 @@ class TextBlock {
   const TextBlock(this.txt,this.color,this.newline);
 }
 
-//TODO: sublight input map, impulse input map, salvaging, AI attacking/movement
 //cargo systems?  passengers, smuggling? cloaking systems?
 class FugueModel with ChangeNotifier {
   Galaxy galaxy;
@@ -122,6 +121,7 @@ class FugueModel with ChangeNotifier {
             loc: SystemLocation(sys, sys.map.rndCell(rnd))));
       }
     }
+    msgController.addMsg("Welcome to crawlspace!  Press 'H' for help, space bar toggles full screen text.");
     update(); //galaxy.rndTest();
   }
 

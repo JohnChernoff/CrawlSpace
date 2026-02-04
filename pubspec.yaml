@@ -98,5 +98,7 @@ flutter:
   # see https://flutter.dev/to/font-from-package
 
   assets:
+    - assets/
     - assets/img/
+    - assets/help/
     - assets/audio/tracks/

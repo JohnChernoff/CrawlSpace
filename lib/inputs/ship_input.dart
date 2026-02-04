@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../controllers/menu_controller.dart';
 import '../controllers/scanner_controller.dart';
 import '../coord_3d.dart';
 import '../fugue_model.dart';
@@ -193,9 +192,8 @@ class ShipInput extends StatelessWidget with GeneralInputMixin {
         LogicalKeySet(LogicalKeyboardKey.keyJ):
         const ScrapIntent(false),
 
-        LogicalKeySet(LogicalKeyboardKey.slash):
+        LogicalKeySet(LogicalKeyboardKey.equal):
         const DepthViewIntent(DepthViewOption.toggle),
-
       },
       actions: {
         ...generalActions,

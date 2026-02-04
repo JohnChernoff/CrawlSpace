@@ -33,6 +33,7 @@ class MenuController extends FugueController {
   ActionCompleter<String>? inventoryCompleter;
   List<InputMode> inputStack = [InputMode.main];
   InputMode get inputMode => inputStack.last;
+  bool fullscreen = false;
 
   MenuController(super.fm);
 
