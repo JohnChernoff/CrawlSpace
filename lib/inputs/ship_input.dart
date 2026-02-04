@@ -46,6 +46,14 @@ class ScannerTargetIntent extends Intent {
   const ScannerTargetIntent(this.ship);
 }
 
+class AwaitIntent extends Intent {
+  const AwaitIntent();
+}
+
+class PursueIntent extends Intent {
+  const PursueIntent();
+}
+
 class FireIntent extends Intent {
   const FireIntent();
 }
@@ -170,6 +178,12 @@ class ShipInput extends StatelessWidget with GeneralInputMixin {
         LogicalKeySet(LogicalKeyboardKey.keyT, LogicalKeyboardKey.shift):
         const ScannerTargetIntent(true),
 
+        LogicalKeySet(LogicalKeyboardKey.enter):
+        const AwaitIntent(),
+
+        LogicalKeySet(LogicalKeyboardKey.numpadAdd):
+        const PursueIntent(),
+
         LogicalKeySet(LogicalKeyboardKey.keyF):
         const FireIntent(),
 
@@ -244,6 +258,18 @@ class ShipInput extends StatelessWidget with GeneralInputMixin {
               } else {
                 fm.scannerController.targetScannedObject(fm.playerShip,fm.scannerController.currentScanSelection);
               }
+              return null;
+            }
+        ),
+        AwaitIntent: CallbackAction<AwaitIntent>(
+            onInvoke: (_) {
+              fm.combatController.awaitNextWeapon(fm.playerShip);
+              return null;
+            }
+        ),
+        PursueIntent: CallbackAction<PursueIntent>(
+            onInvoke: (_) {
+              fm.combatController.pursue(fm.playerShip);
               return null;
             }
         ),

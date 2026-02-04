@@ -8,6 +8,20 @@ import '../systems/ship_system.dart';
 class CombatController extends FugueController {
   CombatController(super.fm);
 
+  void awaitNextWeapon(Ship? ship) {
+    if (ship != null) fm.pilotController.action(ship.pilot,ActionType.combat,actionAuts: ship.turnsUntilWeaponReady);
+  }
+
+  void pursue(Ship? ship) {
+    if (ship != null) {
+      Ship? target = ship.targetShip; if (target != null) {
+        final path = ship.loc.level.map.greedyPath(ship.loc.cell, target.loc.cell, 1, fm.rnd);
+        final dest = path.firstOrNull?.coord;
+        if (dest != null) fm.movementController.moveShip(ship, path.first.coord);
+      }
+    }
+  }
+
   void fire(Ship? ship) {
     if (ship != null) {
       Coord3D? target = ship.targetShip?.loc.cell.coord ?? ship.targetCoord;

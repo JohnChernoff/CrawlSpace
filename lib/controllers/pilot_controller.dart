@@ -5,6 +5,7 @@ import 'package:space_fugue/controllers/fugue_controller.dart';
 import 'package:space_fugue/impulse.dart';
 import 'package:space_fugue/location.dart';
 import 'package:space_fugue/systems/ship_system.dart';
+import '../grid.dart';
 import '../pilot.dart';
 import '../rng.dart';
 import '../ship.dart';
@@ -81,7 +82,7 @@ class PilotController extends FugueController {
                 final idealCells = ship.loc.level.map.cells.values
                     .where((c) => playShip.distanceFromCoord(c.coord) < 1)
                     .sorted((c1,c2) => ship.distanceFromCoord(c2.coord).compareTo(ship.distanceFromCoord(c1.coord)));
-                ship.currentPath = ship.loc.level.map.greedyPath(ship.loc.cell, idealCells.first, 1, 3, fm.rnd);
+                ship.currentPath = ship.loc.level.map.greedyPath(ship.loc.cell, idealCells.first, 3, fm.rnd);
               } else {
                 if (w.cooldown == 0) {
                   fm.combatController.fire(ship);
@@ -94,7 +95,7 @@ class PilotController extends FugueController {
               fm.msgController.addMsg("${ship.name} flees!");
               final idealCells = ship.loc.level.map.cells.values
                   .sorted((c1,c2) => playShip.distanceFromCoord(c2.coord).compareTo(playShip.distanceFromCoord(c1.coord)));
-              ship.currentPath = ship.loc.level.map.greedyPath(ship.loc.cell, idealCells.first, 1, 3, fm.rnd);
+              ship.currentPath = ship.loc.level.map.greedyPath(ship.loc.cell, idealCells.first, 3, fm.rnd);
             }
         }
       }
@@ -104,6 +105,10 @@ class PilotController extends FugueController {
         fm.movementController.vectorShip(ship, Rng.rndUnitVector(fm.rnd));
       }
     }
+  }
+
+  void headTowards(GridCell cell) {
+
   }
 }
 

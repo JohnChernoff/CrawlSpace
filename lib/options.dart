@@ -2,6 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:space_fugue/main.dart';
 
+const Color shipColor = Colors.blue;
+const Color depthColor = Colors.blue;
+const Color scanColor = Colors.white;
+const Color scanDepthColor = Colors.cyan;
+const Color farColor = Colors.black;
+const Color nearColor = Colors.yellowAccent;
+
 enum FugueOption {
   sound(true),fastCombat(false),autoScoop(false),fancyGraph(false),verbose(false);
   final bool defVal;

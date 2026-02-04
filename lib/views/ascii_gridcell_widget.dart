@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:space_fugue/grid.dart';
 import 'package:space_fugue/ship.dart';
 import 'package:space_fugue/system.dart';
+import '../options.dart';
 
 class GridCellWidget extends StatefulWidget {
   final double size;
@@ -37,8 +38,8 @@ class GridCellWidgetState extends State<GridCellWidget> {
     final proximityFactor = 1.0 - (distFromPlayer / maxDist).clamp(0, 1);
     // Color intensity based on proximity
     final textColor = Color.lerp(
-        Colors.black,  // far away
-        Colors.yellowAccent,      // close
+        farColor,  // far away
+        nearColor,      // close
         proximityFactor // * t // but also respect z-depth
     )!; //final textColor = Color.lerp(Colors.grey[500], Colors.black, t);
     final baseFontSize = widget.size * 0.8; // tweak 0.7–0.9
@@ -53,7 +54,11 @@ class GridCellWidgetState extends State<GridCellWidget> {
     ), child:  Center(
       child: Opacity(
         opacity: widget.color == null ? opacity : 1,
-        child: getGridChar(fontSize,textColor),
+        child: getGridChar(
+            fontSize,
+            !widget.cell.empty(level.map) && zDistFromPlayer == 0
+            ? (widget.color != null ? scanDepthColor : depthColor)
+            : widget.color ?? textColor),
       ),
     ));
   }
@@ -64,7 +69,7 @@ class GridCellWidgetState extends State<GridCellWidget> {
       fontFamily: 'FixedSys',
       height: 1.0,
       fontSize: fontSize,
-      color: widget.color ?? color,
+      color: color,
     );
     List<Widget> stack = [];
     final cell = widget.cell;
@@ -81,7 +86,7 @@ class GridCellWidgetState extends State<GridCellWidget> {
     }
     if (widget.ships.isNotEmpty) {
       if (widget.ships.first.playship) {
-        stack.add(Text("@", style: style.copyWith(color: Colors.blue)));
+        stack.add(Text("@", style: style.copyWith(color: shipColor)));
       }
       else {
         stack.add(Text("h", style: style));

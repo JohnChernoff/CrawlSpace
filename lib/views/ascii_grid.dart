@@ -72,17 +72,16 @@ class _AsciiGridState extends State<AsciiGrid> {
                   );
                 })),
             ));
-            }
           }
-        return buildInputLayer(child: Container(color: Colors.white, width: bc.maxWidth, height: bc.maxHeight, child:
-        GridView.count(
+        }
+        return buildInputLayer(child: Container(color: Colors.white, width: bc.maxWidth, height: bc.maxHeight,
+            child: Padding(padding: const EdgeInsets.all(1.0), child: GridView.count(
           mainAxisSpacing: 1,
           crossAxisSpacing: 1,
           crossAxisCount: map.size,
-          childAspectRatio: bc.maxWidth / bc.maxHeight,  // Match your rectangle aspect ratio
+          childAspectRatio: bc.maxWidth / bc.maxHeight,
           children: stacks,
-        )
-        ),fugueModel: widget.fugueModel);
+        ))),fugueModel: widget.fugueModel);
       }
       return const Text("No ship");
     });
@@ -115,14 +114,12 @@ List<GridCellWidget> createStack(int x, int y, double size, Grid<GridCell> map, 
       }
     }
   }
-
   if (!showAllCellsOnZPlane && (cellWidgets.isEmpty || cellWidgets.first.cell.coord.distance(shipCoord) > closestCell.coord.distance(shipCoord))) {
     cellWidgets.add(GridCellWidget(closestCell,size,playship.loc.level.shipsAt(closestCell), playship));
     //if (cellWidgets.length > 1) print("adding closest coord: ${closestCell.coord}");
   } else {
     cellWidgets.sort((a, b) => a.cell.coord.z.compareTo(b.cell.coord.z)); // IMPORTANT: back → front
   }
-  //print("Closest Cell: $closestCell");
   return cellWidgets;
 }
 
