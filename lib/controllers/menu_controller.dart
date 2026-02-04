@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:space_fugue/controllers/fugue_controller.dart';
 import '../inputs/confirm_input.dart';
+import '../item.dart';
 import '../planet.dart';
 import '../shop.dart';
 import '../system.dart';
@@ -29,16 +30,18 @@ class ActionCompleter<T> {
 
 class MenuController extends FugueController {
   ActionCompleter<ConfirmAction>? confirmationCompleter;
+  ActionCompleter<String>? inventoryCompleter;
   List<InputMode> inputStack = [InputMode.main];
   InputMode get inputMode => inputStack.last;
 
   MenuController(super.fm);
 
   void newInputMode(InputMode mode) {
+    print("Mode: ${inputMode.name} -> ${mode.name}");
     if (inputMode != mode) {
       inputStack.add(mode);
-      fm.update();
     }
+    fm.update();
   }
 
   InputMode? exitInputMode() {
@@ -103,6 +106,7 @@ class MenuController extends FugueController {
       final item = shop.items.elementAt(i);
       sb.writeln("${String.fromCharCode(i + 97)}: ${item.name} , ${item.baseCost}");
     }
+    sb.writeln("(s)ell an item");
     sb.writeln("e(x)it shop");
     fm.msgController.addMsg(sb.toString());
     if (changeInputMode) newInputMode(InputMode.shop);
@@ -117,6 +121,18 @@ class MenuController extends FugueController {
     newInputMode(InputMode.confirm);
     confirmationCompleter = ActionCompleter(exitInputMode);
     return confirmationCompleter!.future;
+  }
+
+  Future<String> showInventory(List<Item> items, {bool changeInputMode = true}) {
+    StringBuffer sb = StringBuffer();
+    for (int i=0; i<items.length;i++) {
+      final item = items.elementAt(i);
+      sb.writeln("${String.fromCharCode(i + 97)}: ${item.name} , ${item.baseCost}");
+    }
+    fm.msgController.addMsg(sb.toString());
+    if (changeInputMode) newInputMode(InputMode.inventory);
+    inventoryCompleter = ActionCompleter(exitInputMode);
+    return inventoryCompleter!.future;
   }
 
 }

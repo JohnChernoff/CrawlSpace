@@ -11,20 +11,14 @@ abstract class LetterMenuInput extends StatelessWidget {
   KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
     final char = event.character?.toLowerCase();
 
-    // Check if it's a letter a-m
-    if (char != null && char.length == 1) {
-      final charCode = char.codeUnitAt(0);
-      if (charCode >= 97 && charCode <= 109) { // a-m
-        //fm.addMsg("You selected: $char");
-        handleLetter(char);
-        return KeyEventResult.handled;
-      }
+    // Handle escape/cancel
+    if (event.logicalKey == LogicalKeyboardKey.keyX) { print("X handled");
+      fm.menuController.exitMode();
+      return KeyEventResult.handled;
     }
 
-    // Handle escape/cancel
-    if (event.logicalKey == LogicalKeyboardKey.keyX) {
-      print("X handled");
-      fm.menuController.exitMode();
+    if (char != null && char.length == 1) {
+      handleLetter(char);
       return KeyEventResult.handled;
     }
 

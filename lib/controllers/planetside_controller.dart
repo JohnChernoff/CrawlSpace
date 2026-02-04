@@ -1,8 +1,8 @@
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:space_fugue/controllers/fugue_controller.dart';
 import 'package:space_fugue/controllers/pilot_controller.dart';
 import 'package:space_fugue/inputs/confirm_input.dart';
 import 'package:space_fugue/shop.dart';
-import 'package:space_fugue/systems/ship_system.dart';
 import '../agent.dart';
 import '../descriptors.dart';
 import '../item.dart';
@@ -11,7 +11,6 @@ import '../player.dart';
 import '../ship.dart';
 import '../system.dart';
 import 'audio_controller.dart';
-import 'menu_controller.dart';
 
 class PlanetsideController extends FugueController {
   List<Item> shopList = [];
@@ -118,21 +117,28 @@ class PlanetsideController extends FugueController {
     }
   }
 
+  void shop() {
+    Planet? planet = fm.player.planet; if (planet != null) { // && planet.commLvl.atOrAbove(DistrictLvl.medium)) {
+      planet.shop ??= WeaponShop("Bob's Torpedo Factory"); //TODO: randomize
+      if (planet.shop!.items.isEmpty) planet.shop!.generateItems(planet.techLvl/100, fm.rnd);
+      fm.menuController.displayShopMenu(planet.shop!);
+    }
+  }
+
   //TODO: scrap, shop price modifiers, etc.
   void purchaseItem(String letter) {
     Shop? shop = fm.player.planet?.shop;
     Ship? ship = fm.playerShip;
     if (shop != null && ship != null) {
-      Item i = shop.items.elementAt(letter.codeUnitAt(0) - 97);
+      Item? i = shop.items.elementAtOrNull(letter.codeUnitAt(0) - 97); if (i == null) return;
       fm.menuController.confirmChoice("Purchse ${i.name} for ${i.baseCost} credits?")
           .then((choice) {
         if (choice == ConfirmAction.yes) {
-          if (i.baseCost > fm.player.credits) {
+          final result = shop.sellItem(i, ship); //print("buy: $i, $result");
+          if (result == TransactionResult.insufficientFunds) {
             fm.msgController.addMsg("You can't afford it!");
-          } else if (ship.addToInventory(i)) {
+          } else {
             fm.msgController.addMsg("Thanks for shopping at ${shop.name}!");
-            fm.player.credits -= i.baseCost;
-            shop.items.remove(i);
             fm.menuController.displayShopMenu(shop, changeInputMode: false);
           }
         } else {
@@ -142,11 +148,23 @@ class PlanetsideController extends FugueController {
     }
   }
 
-  void shop() {
-    Planet? planet = fm.player.planet; if (planet != null && planet.commLvl.atOrAbove(DistrictLvl.medium)) {
-      planet.shop ??= WeaponShop("Bob's Torpedo Factory"); //TODO: randomize
-      if (planet.shop!.items.isEmpty) planet.shop!.generateItems(planet.techLvl/100, fm.rnd);
-      fm.menuController.displayShopMenu(planet.shop!);
+  void sellItem() {
+    Ship? ship = fm.playerShip; if (ship != null) {
+      final list = ship.inventory.asList(); list.addAll(ship.scrapHeap.asList());
+      fm.menuController.showInventory(list).then((letter) {
+        int i = letter.codeUnitAt(0) - 97;
+        Item? item = list.elementAtOrNull(i); if (item != null) {
+          Shop? shop = fm.player.planet?.shop;
+          if (shop != null) {
+            final result = shop.buyItem(item,ship); //print("sell: $item, $result");
+            if (result == TransactionResult.ok) {
+              fm.msgController.addMsg("Sold for ${ship.pilot?.transRec.last.credits.abs()} credits");
+            } else if (result == TransactionResult.insufficientFunds) {
+              fm.msgController.addMsg("The shopkeeper can't afford that!");
+            }
+          }
+        }
+      });
     }
   }
 

@@ -5,6 +5,7 @@ import 'package:space_fugue/coord_3d.dart';
 import 'package:space_fugue/grid.dart';
 import 'package:space_fugue/inputs/confirm_input.dart';
 import 'package:space_fugue/inputs/hyper_input.dart';
+import 'package:space_fugue/inputs/inventory_input.dart';
 import 'package:space_fugue/inputs/planet_input.dart';
 import 'package:space_fugue/inputs/shop_input.dart';
 import '../controllers/menu_controller.dart';
@@ -128,7 +129,7 @@ Widget buildInputLayer({required Widget child, required FugueModel fugueModel}) 
     case InputMode.main:
       return ShipInput(child,fugueModel);
     case InputMode.inventory:
-      return ShipInput(child, fugueModel); //InventoryInput(child);
+      return InventoryInput(child, fugueModel); //InventoryInput(child);
     case InputMode.planet:
       return PlanetInput(child, fugueModel);
     case InputMode.hyperspace:

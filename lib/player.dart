@@ -14,7 +14,6 @@ enum OrbitResult {newOrbit,sameOrbit,insufficientEnergy,noShip}
 class Player extends Pilot {
   static const maxDna = 36;
   Planet? planet;
-  int credits = 100;
   int dnaScram = 5;
   TradeTarget? tradeTarget;
   bool starOne = false;

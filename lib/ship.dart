@@ -163,6 +163,14 @@ class Ship {
     return null;
   }
 
+  void jettisonItem(Item i) {
+    if (i is Scrap) {
+      scrapHeap.remove(i);
+    } else if (inventory.remove(i)) {
+      installedSystems.removeWhere((s) => s.system == i);
+    }
+  }
+
   double distanceFrom(Ship ship) => ship.loc.cell.coord.distance(loc.cell.coord);
   double distanceFromCoord(Coord3D c) => c.distance(loc.cell.coord);
 

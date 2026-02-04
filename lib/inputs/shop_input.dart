@@ -5,7 +5,12 @@ class ShopInput extends LetterMenuInput {
 
   @override
   void handleLetter(String letter) {
-    fm.planetsideController.purchaseItem(letter);
+    print("Handling letter: $letter");
+    if (letter.startsWith("s")) {
+      fm.planetsideController.sellItem();
+    } else {
+      fm.planetsideController.purchaseItem(letter);
+    }
   }
 
 }
