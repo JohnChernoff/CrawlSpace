@@ -37,6 +37,7 @@ class TextBlock {
 
 //cargo systems?  passengers, smuggling? cloaking systems?
 class FugueModel with ChangeNotifier {
+  final String version = "0.1a";
   Galaxy galaxy;
   late GalaxyGraph galaxyGraph; //TODO: replace with https://pub.dev/packages/directed_graph
   late ForceDirectedGraph<System> graph;
@@ -121,7 +122,7 @@ class FugueModel with ChangeNotifier {
             loc: SystemLocation(sys, sys.map.rndCell(rnd))));
       }
     }
-    msgController.addMsg("Welcome to crawlspace!  Press 'H' for help, space bar toggles full screen text.");
+    msgController.addMsg("Welcome to crawlspace, version $version!  Press 'H' for help, space bar toggles full screen text.");
     update(); //galaxy.rndTest();
   }
 
