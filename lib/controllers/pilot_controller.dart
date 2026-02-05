@@ -45,8 +45,7 @@ class PilotController extends FugueController {
     if (pilot == fm.player) runUntilNextPlayerTurn();
   }
 
-  void runUntilNextPlayerTurn() {
-    fm.glog("Running until next turn...");
+  void runUntilNextPlayerTurn() { //fm.glog("Running until next turn...");
     final pilots = List.of(fm.activePilots); // ← Copy the list
     do {
       for (Pilot p in pilots) {

@@ -6,7 +6,7 @@ class MessageLog extends StatefulWidget {
   final ValueNotifier<IList<Message>> messageNotifier;
   final bool postGame;
 
-  const MessageLog({super.key, required this.messageNotifier, this.postGame = false});
+  const MessageLog({super.key = const ValueKey('message-log'), required this.messageNotifier, this.postGame = false});
 
   @override
   State<StatefulWidget> createState() => MessageLogState();
@@ -14,31 +14,31 @@ class MessageLog extends StatefulWidget {
 
 class MessageLogState extends State<MessageLog> {
   final ScrollController _scrollController = ScrollController();
+  int _lastMessageCount = 0;
+
 
   bool _shouldAutoScroll() {
     if (!_scrollController.hasClients) return false;
-    const threshold = 100.0; // pixels from bottom
-    final maxScroll = _scrollController.position.maxScrollExtent;
-    final currentScroll = _scrollController.position.pixels;
-    return (maxScroll - currentScroll) <= threshold;
+    const threshold = 100.0;
+    return _scrollController.position.pixels <= threshold;
   }
 
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
+
+  void _scrollToLatest() {
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0.0);
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState(); //print("MessageLogState created");
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
-    super.dispose();
+    super.dispose(); //print("MessageLogState disposed");
   }
 
   @override
@@ -46,11 +46,12 @@ class MessageLogState extends State<MessageLog> {
     return ValueListenableBuilder<IList<Message>>(
       valueListenable: widget.messageNotifier,
       builder: (BuildContext context, IList<Message> messages, Widget? child) {
-        final shouldScroll = _shouldAutoScroll();
-
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (shouldScroll) _scrollToBottom();
-        });
+        if (messages.length > _lastMessageCount && _shouldAutoScroll()) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _scrollToLatest();
+          });
+        }
+        _lastMessageCount = messages.length;
 
         return Container(
           padding: const EdgeInsets.all(12),
@@ -60,10 +61,11 @@ class MessageLogState extends State<MessageLog> {
             border: Border.all(color: Colors.grey.shade700),
           ),
           child: ListView.builder(
+            reverse: true,
             controller: _scrollController,
             itemCount: messages.length,
             itemBuilder: (context, index) {
-              final msg = messages[index];
+              final msg = messages[messages.length - 1 - index];
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Row(
@@ -82,8 +84,9 @@ class MessageLogState extends State<MessageLog> {
                       child: Text(
                         msg.text,
                         style: TextStyle(
-                          fontFamily: 'monospace',
+                          fontFamily: 'JetBrainsMono',
                           fontSize: 14,
+                          height: 1.2,
                           color: msg.color ?? const Color.fromRGBO(222, 222, 222, 1), //Colors.grey,
                         ),
                       ),

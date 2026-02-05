@@ -15,10 +15,10 @@ them, so be careful!
 Commands:
 
 Your ship (the @ char) is in an 8x8x8 grid, either at the star system or impulse level.  Numpad Arrow keys move along the x/y grid and
-maintain your current depth.  Combining arrow keys (or middle numpad key) with shift also moves you down, and combining with z moves you up.
+maintain your current depth.  Combining arrow keys (or middle numpad key) with shift or z moves you down or up, respectively.
 
-Your main view shows a quasi-topdown/isometric perspective of a three-dimensional area.  Things closer to your position will appear
-brighter (and vice versa).  Things at your exact depth will appear the same color as your ship (initially blue).
+Your main view shows a quasi-topdown/isometric perspective of a three-dimensional area.  Things closer to your position appear
+brighter (and vice versa).  Things at your exact depth are the same color as your ship (initially blue).
 
 Your scanners have different modes you can set with the s/S keys and the cell coordinate you're scanning can be selected with the q/a keys.
 Things in the cell you've selected this way will appear white.  To target something you've selected, press T for a ship and t for anything else.

@@ -1,5 +1,4 @@
 import 'dart:math';
-
 import 'package:space_fugue/coord_3d.dart';
 
 enum ColorName {

@@ -24,8 +24,8 @@ class AsciiViewState extends State<AsciiView> {
   Widget build(BuildContext context) {
     return buildInputLayer(child:
     Column(children: [
-      Expanded(flex: 1, child :Container(color: Colors.black, child: MessageLog(messageNotifier: widget.fugueModel.msgController.msgWorker.messageNotifier))),
-      if (!widget.fugueModel.menuController.fullscreen) Expanded(flex: 2, child: Row(children: [
+      Expanded(flex: 2, child :Container(color: Colors.black, child: MessageLog(messageNotifier: widget.fugueModel.msgController.msgWorker.messageNotifier))),
+      if (!widget.fugueModel.menuController.fullscreen) Expanded(flex: 3, child: Row(children: [
         Expanded(child: Container(color: Colors.black, child: TextBlockWidget(
             widget.fugueModel.scannerController.scannerText()
         ))),
@@ -52,7 +52,7 @@ class TextBlockWidget extends StatelessWidget {
       currentLine.add(Text(block.txt, style: TextStyle(color: block.color, fontFamily: "JetBrainsMono")));
 
       if (block.newline) { //print("Adding line, len: ${currentLine.length}");
-        lines.add(Row(children: currentLine));
+        lines.add(SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: currentLine)));
         currentLine = [];
       }
     }
