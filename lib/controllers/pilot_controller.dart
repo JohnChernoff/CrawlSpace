@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:collection/collection.dart';
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:space_fugue/controllers/fugue_controller.dart';
 import 'package:space_fugue/impulse.dart';
 import 'package:space_fugue/location.dart';
@@ -31,8 +32,41 @@ enum ActionType {
 class PilotController extends FugueController {
   PilotController(super.fm);
 
-  void action(Pilot? pilot, ActionType actionType, { mod = 1.0, int? actionAuts }) {
-    if (pilot == null) return;
+  void installSystem(Ship ship, {bool remove = false}) {
+    if (remove) {
+      fm.menuController.showInventory(ship.getAllInstalledSystems.asList()).then((item) {
+        if (item != null && ship.uninstallSystem(item)) {
+          fm.msgController.addMsg("Uninstalled");
+        } else {
+          fm.msgController.addMsg("Couldn't uninstall");
+        }
+      });
+    } else {
+      fm.menuController.showInventory(ship.uninstalledSystems.asList()).then((item) {
+        if (item != null) {
+          final availableSlots = ship.availableSlots(item);
+          if (availableSlots.isNotEmpty) {
+            final slotList = availableSlots.map((s) => s.slot).toList();
+            fm.menuController.showInventory(slotList).then((s) {
+              if (s != null) {
+                ship.exactSlots(s).first.system = item;
+              } else {
+                fm.msgController.addMsg("Invalid slot");
+              }
+            });
+          } else {
+            fm.msgController.addMsg("No available slot");
+          }
+        } else {
+          fm.msgController.addMsg("Invalid system");
+        }
+      });
+    }
+    fm.update();
+  }
+
+  void action(Pilot pilot, ActionType actionType, { mod = 1.0, int? actionAuts }) {
+    if (pilot == nobody) return;
     if (pilot == fm.player && actionType.risk > 0 && fm.rnd.nextInt(255) < fm.player.fedLevel()) {
       //msgController.addMsg("You have a bad feeling about this...");
       if (fm.rnd.nextInt(128) < (max(actionType.risk - (actionType.dna ? fm.player.dnaScram : 0),1))) {
@@ -68,7 +102,7 @@ class PilotController extends FugueController {
 
   void npcShipAct(Ship ship) {
     ship.tick(fm.rnd);
-    Pilot? pilot = ship.pilot; if (pilot == null) return;
+    Pilot pilot = ship.pilot; if (pilot == nobody) return;
     if (pilot.ready) {
       final playShip = fm.playerShip;
       //TODO: detect when systems are critical and flee

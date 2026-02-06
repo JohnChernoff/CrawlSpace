@@ -151,14 +151,13 @@ class PlanetsideController extends FugueController {
   void sellItem() {
     Ship? ship = fm.playerShip; if (ship != null) {
       final list = ship.inventory.asList(); list.addAll(ship.scrapHeap.asList());
-      fm.menuController.showInventory(list).then((letter) {
-        int i = letter.codeUnitAt(0) - 97;
-        Item? item = list.elementAtOrNull(i); if (item != null) {
+      fm.menuController.showInventory(list).then((item) {
+        if (item != null) {
           Shop? shop = fm.player.planet?.shop;
           if (shop != null) {
             final result = shop.buyItem(item,ship); //print("sell: $item, $result");
             if (result == TransactionResult.ok) {
-              fm.msgController.addMsg("Sold for ${ship.pilot?.transRec.last.credits.abs()} credits");
+              fm.msgController.addMsg("Sold for ${ship.pilot.transRec.last.credits.abs()} credits");
             } else if (result == TransactionResult.insufficientFunds) {
               fm.msgController.addMsg("The shopkeeper can't afford that!");
             }

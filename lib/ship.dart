@@ -1,6 +1,5 @@
 import 'dart:math';
 import 'package:collection/collection.dart';
-import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:space_fugue/coord_3d.dart';
 import 'package:space_fugue/fugue_model.dart';
 import 'package:space_fugue/pilot.dart';
@@ -55,9 +54,9 @@ class Scrap extends Item {
 class Ship {
   ShipClass shipClass;
   String name;
-  Pilot? pilot;
+  late Pilot pilot;
   Pilot owner;
-  List<InstalledSystem> installedSystems = []; //rename to shipSlots?
+  List<InstalledSystem> systemMap = []; //rename to shipSlots?
   Map<Ammo,int> ammoMap = {};
   double hullDamage = 0;
   ShipLocation loc;
@@ -75,19 +74,19 @@ class Ship {
   Ship(this.name, this.owner, {
     required this.shipClass,
     required this.loc,
+    Pilot? altPilot,
     PowerGenerator? generator,
     List<Weapon>? weapons,
     Shield? shield,
     Engine? impEngine,
     Engine? subEngine,
     Engine? hyperEngine,
-    //TODO: more engines
-    bool vacant = false}) {
+    }) {
 
-    if (!vacant) pilot = owner;
+    pilot = altPilot ?? owner;
     for (final classSlot in shipClass.slots) {
       for (int i=0;i<classSlot.num;i++) {
-        installedSystems.add(InstalledSystem(classSlot.slot,null));
+        systemMap.add(InstalledSystem(classSlot.slot,null));
       }
     }
     generator ??= PowerGenerator.fromStock(StockPower.basicNuclear);
@@ -129,20 +128,33 @@ class Ship {
   }
 
   Iterable<ShipSystem> get getAllInstalledSystems {
-    return installedSystems.where((s) => (s.system != null)).map((i) => i.system!);
+    return systemMap.where((s) => (s.system != null)).map((i) => i.system!);
   }
 
   Iterable<ShipSystem> getInstalledSystems(List<ShipSystemType> types) {
-    return installedSystems.where((s) => types.contains(s.system?.type)).map((i) => i.system!);
+    return systemMap.where((s) => types.contains(s.system?.type)).map((i) => i.system!);
   }
 
+  bool isInstalled(ShipSystem s) => getAllInstalledSystems.contains(s);
+  Iterable<ShipSystem> get uninstalledSystems => inventory.whereType<ShipSystem>().where((s) => !isInstalled(s));
+
+  Iterable<InstalledSystem> get vacantSlots => systemMap.where((sys) => sys.system == null);
+  Iterable<InstalledSystem> availableSlots(ShipSystem s) => vacantSlots.where((i) => i.slot.supports(s));
+  Iterable<InstalledSystem> exactSlots(SystemSlot s) => vacantSlots.where((as) => as.slot == s).toList();
   bool installSystem(ShipSystem s) {
-    final availableSlots = installedSystems.where((i) => i.system == null && i.slot.supports(s));
-    if (availableSlots.isNotEmpty) {
-      availableSlots.first.system = s;
+    final slots = availableSlots(s);
+    if (slots.isNotEmpty) {
+      slots.first.system = s;
       return true;
     }
     return false;
+  }
+
+  bool uninstallSystem(ShipSystem system) {
+    final s = systemMap.firstWhereOrNull((s) => s.system == system);
+    if (s != null) {
+      s.system = null; return true;
+    } return false;
   }
 
   double get scrapVal => scrapHeap.fold<double>(0.0, (sum, i) => sum + i.baseCost);
@@ -167,7 +179,7 @@ class Ship {
     if (i is Scrap) {
       scrapHeap.remove(i);
     } else if (inventory.remove(i)) {
-      installedSystems.removeWhere((s) => s.system == i);
+      systemMap.removeWhere((s) => s.system == i);
     }
   }
 
@@ -373,7 +385,7 @@ class Ship {
       }
     }
     //double totalBurn = 0;
-    for (final s in installedSystems) {
+    for (final s in systemMap) {
       if (s.system != null && s.system!.active) {
         double e = s.system!.powerDraw; //print("Burning: $e");
         burnEnergy(e); //totalBurn += e;
@@ -394,7 +406,7 @@ class Ship {
     blocks.add(TextBlock("%: ${currentShieldPercentage.toStringAsFixed(2)}",Colors.blue,true));
     blocks.add(TextBlock("Energy: ${getCurrentEnergy().toStringAsFixed(2)}, ",Colors.green,false));
     blocks.add(TextBlock("%: ${currentEnergyPercentage.round().toStringAsFixed(2)}",Colors.blue,true));
-    for (final system in installedSystems) { ShipSystem? s = system.system;
+    for (final system in systemMap) { ShipSystem? s = system.system;
       if (s != null) {
         bool cooldown = s is Weapon && s.cooldown > 0;
         blocks.add(TextBlock("${s.name} ${s.active ? '+' : '-'}",cooldown ? Colors.red : Colors.white,true));

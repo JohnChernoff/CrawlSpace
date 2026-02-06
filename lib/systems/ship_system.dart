@@ -59,6 +59,11 @@ class SystemSlot {
     }
     return false;
   }
+
+  @override
+  String toString() {
+    return "${type.name}, gen: $generation";
+  }
 }
 
 abstract class ShipSystem extends Item {
@@ -103,6 +108,11 @@ abstract class ShipSystem extends Item {
       final i = damage - dmg;
       damage = dmg; return i;
     } return 0;
+  }
+
+  @override
+  String toString() {
+    return "${super.toString()}, slot: $slot";
   }
 }
 

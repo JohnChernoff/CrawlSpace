@@ -40,6 +40,7 @@ class ScannerController extends FugueController {
 
   List<TextBlock> statusText() {
     List<TextBlock> blocks = []; //blocks.add(const TextBlock("Status: ",Colors.white,true));
+    blocks.add(TextBlock("Mode: ${fm.menuController.inputMode.name}",Colors.white,true));
     blocks.add(TextBlock("Tick: ${fm.auTick / 100}",Colors.brown,true));
     blocks.add(TextBlock("Credits: ${fm.player.credits}",Colors.lightGreen,true));
 

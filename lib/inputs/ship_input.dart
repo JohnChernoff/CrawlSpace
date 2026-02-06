@@ -16,6 +16,11 @@ class OpenInventoryIntent extends Intent {
   const OpenInventoryIntent();
 }
 
+class InstallationIntent extends Intent {
+  final bool remove;
+  const InstallationIntent(this.remove);
+}
+
 class OpenPlanetMenuIntent extends Intent {
   const OpenPlanetMenuIntent();
 }
@@ -194,6 +199,13 @@ class ShipInput extends StatelessWidget with GeneralInputMixin {
 
         LogicalKeySet(LogicalKeyboardKey.equal):
         const DepthViewIntent(DepthViewOption.toggle),
+
+        LogicalKeySet(LogicalKeyboardKey.keyI):
+        const InstallationIntent(false),
+
+        LogicalKeySet(LogicalKeyboardKey.keyU):
+        const InstallationIntent(true),
+
       },
       actions: {
         ...generalActions,
@@ -293,6 +305,12 @@ class ShipInput extends StatelessWidget with GeneralInputMixin {
                 fm.scannerController.showAllCellsOnZPlane = !fm.scannerController.showAllCellsOnZPlane;
                 fm.update();
               }
+              return null;
+            }
+        ),
+        InstallationIntent: CallbackAction<InstallationIntent>(
+            onInvoke: (intent) {
+              if (fm.playerShip != null) fm.pilotController.installSystem(fm.playerShip!, remove: intent.remove);
               return null;
             }
         ),

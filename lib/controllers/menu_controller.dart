@@ -17,6 +17,10 @@ class ActionCompleter<T> {
 
   Future<T> get future => _completer.future;
 
+  void trigger() {
+    _onComplete();
+  }
+
   void complete([T? value]) {
     _onComplete();
     _completer.complete(value);
@@ -124,16 +128,28 @@ class MenuController extends FugueController {
     return confirmationCompleter!.future;
   }
 
-  Future<String> showInventory(List<Item> items, {bool changeInputMode = true}) {
+  Future<T?> showInventory<T>(List<T> items, {String? headerTxt, String? nothingTxt, bool changeInputMode = true, bool shopping = false}) {
+    inventoryCompleter = ActionCompleter(exitInputMode);
     StringBuffer sb = StringBuffer();
-    for (int i=0; i<items.length;i++) {
-      final item = items.elementAt(i);
-      sb.writeln("${String.fromCharCode(i + 97)}: ${item.name} , ${item.baseCost}");
+    if (items.isEmpty) {
+      fm.msgController.addMsg(nothingTxt ?? "Nothing found");
+      inventoryCompleter?.trigger();
+      return Future<T?>.value(null);
+    } else {
+      sb.writeln(headerTxt ?? "Please select:");
+      for (int i=0; i<items.length;i++) {
+        final item = items.elementAt(i);
+        if (shopping && item is Item) {
+          sb.writeln("${String.fromCharCode(i + 97)}: ${item.name} , ${item.baseCost}");
+        } else {
+          sb.writeln("${String.fromCharCode(i + 97)}: $item");
+        }
+      }
     }
     fm.msgController.addMsg(sb.toString());
     if (changeInputMode) newInputMode(InputMode.inventory);
-    inventoryCompleter = ActionCompleter(exitInputMode);
-    return inventoryCompleter!.future;
+    return inventoryCompleter!.future
+        .then((letter) => items.elementAtOrNull(letter.codeUnitAt(0) - 97));
   }
 
 }

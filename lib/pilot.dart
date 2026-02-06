@@ -18,6 +18,8 @@ class TransactionRecord {
   const TransactionRecord(this.type,this.credits);
 }
 
+Pilot nobody = Pilot("nobody",System("nowhere",StellarClass.A,0,0,[],Random()));
+
 class Pilot {
   String name;
   int credits = 100;
