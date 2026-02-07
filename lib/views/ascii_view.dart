@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:space_fugue/views/message_log.dart';
 import '../controllers/menu_controller.dart';
@@ -31,13 +33,20 @@ class AsciiViewState extends State<AsciiView> {
       double h4 = bc.maxHeight / 4;
       return Stack(children: [
         mainView(),
+        // Blur overlay
+        BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 2.5, sigmaY: 5),
+          child: Container(
+            color: Colors.black.withValues(alpha: 0.3),
+          ),
+        ),
         Positioned(
             left: w4,
-            top: h4,
+            top: h4 / 2,
             child: Container(
               color: Colors.black,
               width: w4 * 2,
-              height: h4 * 2,
+              height: h4 * 3 ,
               child: MenuWidget(widget.fugueModel),
             ))
         ]);
