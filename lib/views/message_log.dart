@@ -8,7 +8,8 @@ class MessageLog extends StatefulWidget {
   final bool postGame;
   final int? maxLines;
 
-  const MessageLog({super.key = const ValueKey('message-log'), required this.messageNotifier, this.postGame = false, this.maxLines});
+  const MessageLog({super.key, // = const ValueKey('message-log'),
+    required this.messageNotifier, this.postGame = false, this.maxLines});
 
   @override
   State<StatefulWidget> createState() => MessageLogState();

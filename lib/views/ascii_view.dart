@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:space_fugue/views/menu.dart';
 import 'package:space_fugue/views/message_log.dart';
 import '../controllers/menu_controller.dart';
 import '../fugue_model.dart';
-import '../inputs/confirm_input.dart';
-import '../inputs/hyper_input.dart';
 import '../inputs/menu_input.dart';
-import '../inputs/planet_input.dart';
 import '../inputs/ship_input.dart';
 import 'ascii_grid.dart';
+import 'menu_view.dart';
 
 class AsciiView extends StatefulWidget {
   final FugueModel fugueModel;
@@ -23,7 +20,7 @@ class AsciiViewState extends State<AsciiView> {
   @override
   Widget build(BuildContext context) {
     print(widget.fugueModel.menuController.inputStack);
-    return widget.fugueModel.menuController.inputMode == InputMode.menu
+    return widget.fugueModel.menuController.inputMode.showMenu
       ? menuView()
       : buildInputLayer(child: mainView(), fugueModel: widget.fugueModel);
   }
@@ -50,7 +47,9 @@ class AsciiViewState extends State<AsciiView> {
 
   Widget mainView() {
     return Column(children: [
-      Expanded(flex: 2, child :Container(color: Colors.black, child: MessageLog(messageNotifier: widget.fugueModel.msgController.msgWorker.messageNotifier))),
+      Expanded(flex: 2, child :Container(color: Colors.black,
+          child: MessageLog(key: const ValueKey("main-log"),
+              messageNotifier: widget.fugueModel.msgController.msgWorker.messageNotifier))),
       if (!widget.fugueModel.menuController.fullscreen) Expanded(flex: 3, child: Row(children: [
         Expanded(child: Container(color: Colors.black, child: TextBlockWidget(
             widget.fugueModel.scannerController.scannerText()
@@ -94,33 +93,9 @@ class TextBlockWidget extends StatelessWidget {
 
 }
 
-
-Widget buildInputLayer({required Widget child, required FugueModel fugueModel}) {
+Widget buildInputLayer({required Widget child, required FugueModel fugueModel}) =>
   switch (fugueModel.menuController.inputMode) {
-    case InputMode.main:
-      return ShipInput(child,fugueModel);
-    case InputMode.menu:
-      return MenuInput(child, fugueModel); //InventoryInput(child);
-    case InputMode.planet:
-      return PlanetInput(child, fugueModel);
-    case InputMode.hyperspace:
-      return HyperSpaceInput(child, fugueModel);
-    case InputMode.shop:
-    // TODO: Handle this case.
-      throw UnimplementedError();
-    case InputMode.repair:
-    // TODO: Handle this case.
-      throw UnimplementedError();
-    case InputMode.broadcast:
-    // TODO: Handle this case.
-      throw UnimplementedError();
-    case InputMode.dnaShop:
-    // TODO: Handle this case.
-      throw UnimplementedError();
-    case InputMode.tavern:
-    // TODO: Handle this case.
-      throw UnimplementedError();
-    case InputMode.confirm:
-      return ConfirmInput(child, fugueModel);
-  }
-}
+     InputMode.main => ShipInput(child,fugueModel),
+     InputMode.menu => MenuInput(child, fugueModel),
+     InputMode.planet => MenuInput(child, fugueModel)
+};

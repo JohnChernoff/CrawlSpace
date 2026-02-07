@@ -119,7 +119,7 @@ class PlanetsideController extends FugueController {
       planet.shop ??= WeaponShop("Bob's Torpedo Factory"); //TODO: randomize
       if (planet.shop!.items.isEmpty) planet.shop!.generateItems(planet.techLvl/100, fm.rnd);
       if (fm.playerShip != null) {
-        fm.menuController.showMenu(fm.menuController.createShopMenu(planet.shop!, fm.playerShip!));
+        fm.menuController.showMenu(fm.menuController.createShopMenu(planet.shop!, fm.playerShip!),headerTxt: planet.shop!.name);
       }
     }
   }

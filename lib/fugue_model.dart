@@ -50,7 +50,6 @@ class FugueModel with ChangeNotifier {
   bool gameOver = false;
   bool victory = false;
   final faker = Faker.instance;
-  final msgWorker = MessageQueueWorker();
   Map<Pilot,Ship> pilotMap = {};
   Set<Pilot> pilots = {};
   Ship? get playerShip => pilotMap[player];
@@ -290,10 +289,10 @@ class FugueModel with ChangeNotifier {
   int score() => auTick + (player.starOne ? 500 : 0) + (galaxy.discoveredSystems() * 2) + (player.piratesVanquished * 3) + (victory ? 1000 : 0);
 
   Future<void> update() async {
-    if (!msgWorker.isProcessing || msgWorker.processNotifier.isCompleted) { //print("Updating...");
+    if (!msgController.msgWorker.isProcessing || msgController.msgWorker.processNotifier.isCompleted) { //print("Updating...");
       notifyListeners();
     } else { //print("Waiting on message queue...");
-      msgWorker.processNotifier.future.then((v) { //print("Message queue clear, updating...");
+      msgController.msgWorker.processNotifier.future.then((v) { //print("Message queue clear, updating...");
         notifyListeners();
       });
     }

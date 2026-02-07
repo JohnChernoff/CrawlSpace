@@ -4,20 +4,28 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:space_fugue/controllers/fugue_controller.dart';
 import '../inputs/confirm_input.dart';
 import '../item.dart';
+import '../pilot.dart';
 import '../planet.dart';
 import '../ship.dart';
 import '../shop.dart';
 import '../system.dart';
 import '../systems/ship_system.dart';
 
-enum InputMode {main,menu,hyperspace,planet,repair,shop,broadcast,dnaShop,tavern,confirm}
+enum InputMode {
+  main(false),
+  menu(true),
+  planet(true);
+  final bool showMenu;
+  const InputMode(this.showMenu);
+}
 
 abstract class MenuEntry {
   final String letter;
   final String label;
   final bool exitMenu;
+  bool get enabled => true;
 
-  MenuEntry(this.letter,this.label,{this.exitMenu = true});
+  MenuEntry(this.letter,this.label,{this.exitMenu = false});
 
   void activate(MenuController menu);
 }
@@ -25,16 +33,16 @@ abstract class MenuEntry {
 class ActionEntry extends MenuEntry {
   final void Function(MenuController) action;
 
-  ActionEntry(super.letter, super.label, this.action, {super.exitMenu = true});
+  ActionEntry(super.letter, super.label, this.action, {super.exitMenu});
 
   @override
   void activate(MenuController menu) {
-    action(menu);
     if (exitMenu) {
       menu.exitInputMode();
     } else {
       menu.fm.update();
     }
+    action(menu);
   }
 }
 
@@ -42,7 +50,7 @@ class ValueEntry<T> extends MenuEntry {
   final T value;
   final void Function(T) onSelect;
 
-  ValueEntry(super.letter, super.label, this.value, this.onSelect, {super.exitMenu = true});
+  ValueEntry(super.letter, super.label, this.value, this.onSelect, {super.exitMenu});
 
   @override
   void activate(MenuController menu) {
@@ -53,6 +61,18 @@ class ValueEntry<T> extends MenuEntry {
     }
     onSelect(value);
   }
+}
+
+class ShopItemEntry<T> extends ValueEntry {
+  Pilot shopper;
+  Item item;
+  @override
+  // TODO: use shop to determine actual cost
+  bool get enabled => shopper.credits > item.baseCost;
+
+  ShopItemEntry(super.letter, super.label, super.value, super.onSelect, {
+    required this.shopper, required this.item, super.exitMenu});
+
 }
 
 class ResultMessage {
@@ -91,7 +111,7 @@ class MenuController extends FugueController {
   List<InputMode> inputStack = [InputMode.main];
   InputMode get inputMode => inputStack.last;
   bool fullscreen = false;
-
+  String currentMenuTitle = "";
   MenuController(super.fm);
 
   void newInputMode(InputMode mode) {
@@ -104,10 +124,9 @@ class MenuController extends FugueController {
 
   InputMode? exitInputMode() {
     final previousMode = (inputStack.length > 1) ? inputStack.removeLast() : null;
-    if (previousMode != null) {
-      if (previousMode == InputMode.shop && fm.player.planet != null) {
-        showPlanetMenu(fm.player.planet!);
-      }
+    fm.glog("Exited from  ${previousMode?.name} ->  ${inputMode.name}");
+    if (previousMode != inputMode) {
+      if (inputMode == InputMode.planet && fm.player.planet != null) showPlanetMenu(fm.player.planet!);
     }
     fm.update();
     return previousMode;
@@ -121,48 +140,31 @@ class MenuController extends FugueController {
     }
     sb.writeln("x: cancel");
     fm.msgController.addMsg(sb.toString());
-    newInputMode(InputMode.hyperspace);
+    //newInputMode(InputMode.hyperspace);
   }
 
   void showPlanetMenu(Planet planet) {
-    StringBuffer sb = StringBuffer(); //sb.writeln(planet.description);
-    if (planet.resLvl.atOrAbove(DistrictLvl.light)) {
-      sb.writeln("(s)cout the system");
-    }
-    if (planet.resLvl.atOrAbove(DistrictLvl.medium)) {
-      sb.writeln("(h)ack the network for clues about Star One");
-    }
-    if (planet.resLvl.atOrAbove(DistrictLvl.heavy)) {
-      sb.writeln("reveal (a)gent locations");
-    }
-    if (planet.commLvl.atOrAbove(DistrictLvl.light)) {
-      sb.writeln("(v)isit the tavern");
-    }
-    if (planet.commLvl.atOrAbove(DistrictLvl.medium)) {
-      sb.writeln("(t)rade mission");
-    }
-    if (planet.commLvl.atOrAbove(DistrictLvl.heavy)) {
-      sb.writeln("(b)roadcast information about Star One");
-    }
-    if (planet.dustLvl.atOrAbove(DistrictLvl.light)) {
-      sb.writeln("(r)epair ship");
-    }
-    if (planet.dustLvl.atOrAbove(DistrictLvl.medium)) {
-      sb.writeln("(u)pgrade ship");
-    }
-    if (planet.dustLvl.atOrAbove(DistrictLvl.heavy)) {
-      sb.writeln("(g)enetic engineering");
-    }
-    sb.writeln("(l)aunch");
-    fm.msgController.addMsg(sb.toString());
-    newInputMode(InputMode.planet);
+    List<MenuEntry> activities = [
+      ActionEntry("s", "(s)cout the system", (m) => fm.planetsideController.scout(), exitMenu: false),
+      ActionEntry("h", "(h)ack the network for clues about Star One", (m) => fm.planetsideController.hack(), exitMenu: false),
+      ActionEntry("a", "reveal (a)gent locations", (m) => fm.planetsideController.spy(), exitMenu: false),
+      ActionEntry("v", "(v)isit the tavern", (m) => fm.planetsideController.spy(), exitMenu: false),
+      ActionEntry("t", "(t)rade mission", (m) => fm.planetsideController.getTradeMission(), exitMenu: false),
+      ActionEntry("i", "broadcast (i)nformation about Star One", (m) => fm.planetsideController.broadcast(), exitMenu: false),
+      ActionEntry("r", "(r)epair ship", (m) => fm.planetsideController.spy(), exitMenu: false),
+      ActionEntry("u", "(u)pgrade ship", (m) => fm.planetsideController.spy(), exitMenu: false),
+      ActionEntry("g", "(g)enetic engineering", (m) => fm.planetsideController.bioHack(), exitMenu: false),
+      ActionEntry("b", "(b)rowse shop", (m) => fm.planetsideController.shop(), exitMenu: false),
+      ActionEntry("l", "(l)aunch", (m) => fm.msgController.addMsg("Launching..."), exitMenu: true),
+    ];
+    showMenu(activities,headerTxt: planet.name, noExit: true, mode: InputMode.planet);
   }
 
   String letter(int n) => String.fromCharCode(n + 97);
 
   Future<ConfirmAction> confirmChoice(String msg) {
     fm.msgController.addMsg(msg);
-    newInputMode(InputMode.confirm);
+    //newInputMode(InputMode.confirm);
     confirmationCompleter = ActionCompleter(exitInputMode);
     return confirmationCompleter!.future;
   }
@@ -172,7 +174,7 @@ class MenuController extends FugueController {
     return <MenuEntry> [
       for (int i = 0; i < systems.length; i++)
         ValueEntry(letter(i),"${systems[i].name} , ${systems[i].slot}", systems[i],
-                (system) => fm.msgController.addResultMsg(fm.pilotController.uninstallSystem(system, ship)))
+                (system) => fm.msgController.addResultMsg(fm.pilotController.uninstallSystem(system, ship)),exitMenu: true)
     ];
   }
 
@@ -181,7 +183,7 @@ class MenuController extends FugueController {
     return <MenuEntry> [
       for (int i = 0; i < systems.length; i++)
         ValueEntry(letter(i),"${systems[i].name} , ${systems[i].slot}", systems[i],
-                (system) => fm.pilotController.installSystem(ship, system))
+                (system) => fm.pilotController.installSystem(ship, system),exitMenu: true)
     ];
   }
 
@@ -190,7 +192,7 @@ class MenuController extends FugueController {
     return <MenuEntry> [
       for (int i = 0; i < slots.length; i++)
         ValueEntry(letter(i),"${slots[i]}", slots[i],
-                (slot) => fm.msgController.addResultMsg(fm.pilotController.installSystem(ship, system, slot: slot)))
+                (slot) => fm.msgController.addResultMsg(fm.pilotController.installSystem(ship, system, slot: slot)),exitMenu: true)
     ];
   }
 
@@ -198,11 +200,13 @@ class MenuController extends FugueController {
     List<Item> items = shop.items; //filters?
     final entries = <MenuEntry> [
       for (int i = 0; i < items.length; i++)
-        ValueEntry(letter(i),"${items[i].name} , ${items[i].baseCost}", items[i],
-                (item) => fm.msgController.addMsg(shop.transaction(item, ship, true)),
-            exitMenu: false)
+        ShopItemEntry(letter(i),"${items[i].name} , ${items[i].baseCost}", items[i],
+                (item) {
+              fm.msgController.addMsg(shop.transaction(item, ship, true));
+              showMenu(createShopMenu(shop, ship),headerTxt: shop.name); //refresh shop
+          }, shopper: ship.pilot, item: items[i])
     ];
-    entries.add(ActionEntry("s","(s)ell", (m) => showMenu(createShopSellMenu(ship, shop)),exitMenu: false));
+    entries.add(ActionEntry("s","(s)ell", (m) => showMenu(createShopSellMenu(ship, shop))));
     return entries;
   }
 
@@ -212,24 +216,27 @@ class MenuController extends FugueController {
     return <MenuEntry> [
       for (int i = 0; i < items.length; i++)
         ValueEntry(letter(i),"${items[i].name} , ${items[i].baseCost}", items[i], //TODO: show cost modifier?
-                (item) => fm.msgController.addMsg(shop.transaction(item, ship, false)))
+                (item) {
+                  fm.msgController.addMsg(shop.transaction(item, ship, false));
+                  showMenu(createShopMenu(shop, ship),headerTxt: shop.name); //refresh shop
+      },exitMenu: false)
     ];
   }
 
-  void showMenu(List<MenuEntry> menuMap, {headerTxt = "Please select:", nothingTxt = "Nothing found"}) {
-    StringBuffer sb = StringBuffer();
+  void showMenu(final List<MenuEntry> menuMap, { //Function? exitAction,
+    InputMode mode = InputMode.menu,
+    bool noExit = false,
+    String headerTxt = "Please select:",
+    String nothingTxt = "Nothing found"}) {
     if (menuMap.isEmpty) {
       fm.msgController.addMsg(nothingTxt); return;
     } else {
-      menuMap.add(ActionEntry("x", "e(x)it", (m) => exitInputMode()));
-      selectionList = menuMap;
-      sb.writeln(headerTxt);
-      for (final e in selectionList) {
-        sb.writeln("${e.letter}: ${e.label}");
-      }
+      final entries = List<MenuEntry>.from(menuMap);
+      if (!noExit) entries.add(ActionEntry("x", "e(x)it", (m) => {}, exitMenu: true));
+      selectionList = entries;
+      currentMenuTitle = headerTxt;
     }
-    fm.msgController.addMsg(sb.toString());
-    newInputMode(InputMode.menu);
+    newInputMode(mode);
   }
 
 

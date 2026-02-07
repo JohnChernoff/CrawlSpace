@@ -22,7 +22,7 @@ Pilot nobody = Pilot("nobody",System("nowhere",StellarClass.A,0,0,[],Random()));
 
 class Pilot {
   String name;
-  int credits = 100;
+  int credits = 10000;
   List<TransactionRecord> transRec = [];
   System system;
   Map<AttribType,int> attributes = {};
