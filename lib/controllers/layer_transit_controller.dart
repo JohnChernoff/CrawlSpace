@@ -70,14 +70,14 @@ class LayerTransitController extends FugueController {
     final system = ship.loc.level; if (system is! System) {
       fm.msgController.addMsg("No system?!"); return;
     }
-    currentLinkMap.clear();
-    for (int i=0; i<system.links.length; i++) {
-      final link = system.links.elementAt(i);
-      String letter = String.fromCharCode(97 + i); // 97 is ASCII for 'a'
-      currentLinkMap[letter] = link;
-    }
-    fm.menuController.showHyperSpaceMenu(currentLinkMap);
-    fm.pilotController.action(fm.player, ActionType.sector);
+
+    List<ActionEntry> links = List.generate(system.links.length, (i) =>
+        ActionEntry(String.fromCharCode(97 + i),
+            system.links.elementAt(i).name,
+                (m) => newSystem(fm.player, system.links.elementAt(i)),exitMenu: true)
+    );
+
+    fm.menuController.showMenu(links, headerTxt: "Hyperspace");
   }
 
   void hyperSpace(String letter) {
