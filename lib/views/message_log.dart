@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import '../controllers/message_controller.dart';
@@ -5,8 +6,9 @@ import '../controllers/message_controller.dart';
 class MessageLog extends StatefulWidget {
   final ValueNotifier<IList<Message>> messageNotifier;
   final bool postGame;
+  final int? maxLines;
 
-  const MessageLog({super.key = const ValueKey('message-log'), required this.messageNotifier, this.postGame = false});
+  const MessageLog({super.key = const ValueKey('message-log'), required this.messageNotifier, this.postGame = false, this.maxLines});
 
   @override
   State<StatefulWidget> createState() => MessageLogState();
@@ -63,7 +65,7 @@ class MessageLogState extends State<MessageLog> {
           child: ListView.builder(
             reverse: true,
             controller: _scrollController,
-            itemCount: messages.length,
+            itemCount: math.min((widget.maxLines ?? 999), messages.length),
             itemBuilder: (context, index) {
               final msg = messages[messages.length - 1 - index];
               return Padding(

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:space_fugue/views/menu.dart';
 import 'package:space_fugue/views/message_log.dart';
 import '../controllers/menu_controller.dart';
 import '../fugue_model.dart';
 import '../inputs/confirm_input.dart';
 import '../inputs/hyper_input.dart';
-import '../inputs/inventory_input.dart';
+import '../inputs/menu_input.dart';
 import '../inputs/planet_input.dart';
 import '../inputs/ship_input.dart';
-import '../inputs/shop_input.dart';
 import 'ascii_grid.dart';
 
 class AsciiView extends StatefulWidget {
@@ -22,8 +22,34 @@ class AsciiViewState extends State<AsciiView> {
 
   @override
   Widget build(BuildContext context) {
-    return buildInputLayer(child:
-    Column(children: [
+    print(widget.fugueModel.menuController.inputStack);
+    return widget.fugueModel.menuController.inputMode == InputMode.menu
+      ? menuView()
+      : buildInputLayer(child: mainView(), fugueModel: widget.fugueModel);
+  }
+
+  Widget menuView() {
+    return LayoutBuilder(builder: (ctx,bc) {
+      double w4 = bc.maxWidth / 4;
+      double h4 = bc.maxHeight / 4;
+      return Stack(children: [
+        mainView(),
+        Positioned(
+            left: w4,
+            top: h4,
+            child: Container(
+              color: Colors.black,
+              width: w4 * 2,
+              height: h4 * 2,
+              child: MenuWidget(widget.fugueModel),
+            ))
+        ]);
+    });
+
+  }
+
+  Widget mainView() {
+    return Column(children: [
       Expanded(flex: 2, child :Container(color: Colors.black, child: MessageLog(messageNotifier: widget.fugueModel.msgController.msgWorker.messageNotifier))),
       if (!widget.fugueModel.menuController.fullscreen) Expanded(flex: 3, child: Row(children: [
         Expanded(child: Container(color: Colors.black, child: TextBlockWidget(
@@ -34,7 +60,7 @@ class AsciiViewState extends State<AsciiView> {
           widget.fugueModel.scannerController.statusText(),
         ))))
       ]))
-    ]), fugueModel: widget.fugueModel) ;
+    ]);
   }
 }
 
@@ -73,14 +99,15 @@ Widget buildInputLayer({required Widget child, required FugueModel fugueModel}) 
   switch (fugueModel.menuController.inputMode) {
     case InputMode.main:
       return ShipInput(child,fugueModel);
-    case InputMode.inventory:
-      return InventoryInput(child, fugueModel); //InventoryInput(child);
+    case InputMode.menu:
+      return MenuInput(child, fugueModel); //InventoryInput(child);
     case InputMode.planet:
       return PlanetInput(child, fugueModel);
     case InputMode.hyperspace:
       return HyperSpaceInput(child, fugueModel);
     case InputMode.shop:
-      return ShopInput(child,fugueModel);
+    // TODO: Handle this case.
+      throw UnimplementedError();
     case InputMode.repair:
     // TODO: Handle this case.
       throw UnimplementedError();

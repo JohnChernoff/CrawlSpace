@@ -2,26 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../fugue_model.dart';
 
-abstract class LetterMenuInput extends StatelessWidget {
+abstract class LetterInput extends StatelessWidget {
   final Widget child;
   final FugueModel fm;
 
-  const LetterMenuInput(this.child, this.fm, {super.key});
+  const LetterInput(this.child, this.fm, {super.key});
 
   KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
-    final char = event.character?.toLowerCase();
-
-    // Handle escape/cancel
-    if (event.logicalKey == LogicalKeyboardKey.keyX) { print("X handled");
-      fm.menuController.exitMode();
-      return KeyEventResult.handled;
-    }
-
+    final char = event.character; //?.toLowerCase();
     if (char != null && char.length == 1) {
       handleLetter(char);
       return KeyEventResult.handled;
     }
-
     return KeyEventResult.ignored;
   }
 

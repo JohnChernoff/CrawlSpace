@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:space_fugue/controllers/fugue_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:space_fugue/controllers/menu_controller.dart';
 
 class MessageController extends FugueController {
   final msgWorker = MessageQueueWorker();
@@ -11,6 +12,12 @@ class MessageController extends FugueController {
 
   void addMsg(String txt, {int delay = 100, bool updateAfter = false, Color color = Colors.white}) {
     msgWorker.addMsg(Message(text: txt, timestamp: fm.starDate(),color: color),delay: delay);
+    if (updateAfter) fm.update();
+  }
+
+  void addResultMsg(ResultMessage rm, {int delay = 100, bool updateAfter = false, Color? color}) {
+    msgWorker.addMsg(Message(text: rm.msg, timestamp: fm.starDate(),
+        color: color ?? (rm.success ? Colors.white: Colors.red)),delay: delay);
     if (updateAfter) fm.update();
   }
 

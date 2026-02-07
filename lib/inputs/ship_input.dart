@@ -310,7 +310,13 @@ class ShipInput extends StatelessWidget with GeneralInputMixin {
         ),
         InstallationIntent: CallbackAction<InstallationIntent>(
             onInvoke: (intent) {
-              if (fm.playerShip != null) fm.pilotController.installSystem(fm.playerShip!, remove: intent.remove);
+              if (fm.playerShip != null) {
+                if (intent.remove) {
+                  fm.menuController.showMenu(fm.menuController.createUninstallMenu(fm.playerShip!));
+                } else {
+                  fm.menuController.showMenu(fm.menuController.createInstallMenu(fm.playerShip!));
+                }
+              }
               return null;
             }
         ),

@@ -10,7 +10,7 @@ enum SkillType {
   engineering,piloting,medicine,communications,combat
 }
 
-enum TransactionType {  shopBuy,shopSell }
+enum TransactionType {  shopBuy,shopSell,rollback }
 
 class TransactionRecord {
   final TransactionType type;
@@ -38,14 +38,16 @@ class Pilot {
   Pilot(this.name,this.system,{this.hp = 32, this.hostile = true});
 
   bool transaction(TransactionType type, int c) {
-    if (c > 0 || ((credits + c) > 0)) {
-      print("Whee: $c");
+    bool ok = c > 0 || ((credits + c) > 0); //print("Whee: $c");
+    if (ok) {
       credits += c;
       transRec.add(TransactionRecord(type,c));
-      return true;
-    } else {
-      return false;
     }
+    return ok;
+  }
+
+  bool rollBack() {
+    return (transRec.isNotEmpty && transaction(TransactionType.rollback,-transRec.last.credits));
   }
 
 }

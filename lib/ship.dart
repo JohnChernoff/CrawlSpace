@@ -141,13 +141,22 @@ class Ship {
   Iterable<InstalledSystem> get vacantSlots => systemMap.where((sys) => sys.system == null);
   Iterable<InstalledSystem> availableSlots(ShipSystem s) => vacantSlots.where((i) => i.slot.supports(s));
   Iterable<InstalledSystem> exactSlots(SystemSlot s) => vacantSlots.where((as) => as.slot == s).toList();
-  bool installSystem(ShipSystem s) {
-    final slots = availableSlots(s);
-    if (slots.isNotEmpty) {
-      slots.first.system = s;
-      return true;
+
+  InstalledSystem? installSystem(ShipSystem system, {SystemSlot? slot}) {
+    if (slot == null) {
+      final slots = availableSlots(system);
+      if (slots.isNotEmpty) {
+        slots.first.system = system;
+        return slots.first;
+      }
+    } else {
+      final slots = exactSlots(slot);
+      if (slots.isNotEmpty && slots.first.slot.supports(system)) {
+        slots.first.system = system;
+      }
+      return slots.first;
     }
-    return false;
+    return null;
   }
 
   bool uninstallSystem(ShipSystem system) {

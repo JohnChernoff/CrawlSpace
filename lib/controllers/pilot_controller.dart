@@ -1,15 +1,13 @@
 import 'dart:math';
-
 import 'package:collection/collection.dart';
-import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:space_fugue/controllers/fugue_controller.dart';
-import 'package:space_fugue/impulse.dart';
+import 'package:space_fugue/controllers/menu_controller.dart';
 import 'package:space_fugue/location.dart';
-import 'package:space_fugue/systems/ship_system.dart';
 import '../grid.dart';
 import '../pilot.dart';
 import '../rng.dart';
 import '../ship.dart';
+import '../systems/ship_system.dart';
 import '../systems/weapons.dart';
 
 enum ActionType {
@@ -32,37 +30,29 @@ enum ActionType {
 class PilotController extends FugueController {
   PilotController(super.fm);
 
-  void installSystem(Ship ship, {bool remove = false}) {
-    if (remove) {
-      fm.menuController.showInventory(ship.getAllInstalledSystems.asList()).then((item) {
-        if (item != null && ship.uninstallSystem(item)) {
-          fm.msgController.addMsg("Uninstalled");
-        } else {
-          fm.msgController.addMsg("Couldn't uninstall");
-        }
-      });
+  ResultMessage uninstallSystem(ShipSystem system, Ship ship) {
+    if (ship.uninstallSystem(system)) {
+      return const ResultMessage("Uninstalled",true);
     } else {
-      fm.menuController.showInventory(ship.uninstalledSystems.asList()).then((item) {
-        if (item != null) {
-          final availableSlots = ship.availableSlots(item);
-          if (availableSlots.isNotEmpty) {
-            final slotList = availableSlots.map((s) => s.slot).toList();
-            fm.menuController.showInventory(slotList).then((s) {
-              if (s != null) {
-                ship.exactSlots(s).first.system = item;
-              } else {
-                fm.msgController.addMsg("Invalid slot");
-              }
-            });
-          } else {
-            fm.msgController.addMsg("No available slot");
-          }
-        } else {
-          fm.msgController.addMsg("Invalid system");
-        }
-      });
+      return const ResultMessage("Couldn't uninstall",false);
     }
-    fm.update();
+  }
+
+  ResultMessage installSystem(Ship ship, ShipSystem system, {SystemSlot? slot}) {
+    if (ship.inventory.contains(system)) {
+      if (slot == null) {
+        fm.menuController.showMenu(fm.menuController.createInstallSlotMenu(ship,system),headerTxt: "Slot:");
+        return const ResultMessage("Select a slot", true);
+      } else {
+        final installedSystem = ship.installSystem(system, slot: slot);
+        if (installedSystem != null) {
+          return ResultMessage("Installed at slot: $slot",true);
+        } else {
+          return ResultMessage("Invalid/unavailable slot: $slot",false);
+        }
+      }
+    }
+    return ResultMessage("System not found: $system",false);
   }
 
   void action(Pilot pilot, ActionType actionType, { mod = 1.0, int? actionAuts }) {

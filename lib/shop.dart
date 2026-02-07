@@ -25,32 +25,60 @@ sealed class Shop {
   void generateItems(double techLvl, Random rnd, {int avgQuantity = 12});
 
   TransactionResult buyItem(Item item, Ship ship) {
-    final pilot = ship.pilot; if (pilot == null) return TransactionResult.wtf;
+    final pilot = ship.pilot; if (pilot == nobody) return TransactionResult.wtf;
     final price = (item.baseCost / 2).round(); //TODO: some variable?
     if (credits > price) {
       if (pilot.transaction(TransactionType.shopSell,price)) {
         credits -= price;
         ship.jettisonItem(item);
-        if (item is ShipSystem) items.add(item);
+        if (item is ShipSystem) items.add(item); //TODO: generalize
         return TransactionResult.ok;
       }
       else {
         return TransactionResult.wtf;
       }
     } else {
-      return TransactionResult.inventoryError;
+      return TransactionResult.insufficientFunds;
     }
   }
 
 TransactionResult sellItem(Item i, Ship ship) {
-    final pilot = ship.pilot; if (pilot == null) return TransactionResult.wtf;
-    if (!pilot.transaction(TransactionType.shopBuy,-i.baseCost)) {
-      return TransactionResult.insufficientFunds;
-    } else if (ship.addToInventory(i)) {
-      items.remove(i);
-      return TransactionResult.ok;
+    if (items.contains(i)) {
+      int price = i.baseCost;
+      if (!ship.pilot.transaction(TransactionType.shopBuy,-price)) {
+        return TransactionResult.insufficientFunds;
+      } else if (ship.addToInventory(i)) {
+        items.remove(i);
+        credits += price;
+        return TransactionResult.ok;
+      } else {
+        ship.pilot.rollBack();
+        return TransactionResult.inventoryError;
+      }
     } else {
       return TransactionResult.inventoryError;
+    }
+  }
+
+  String transaction(Item item,Ship ship, bool buy) {
+    if (buy) {
+      TransactionResult result = sellItem(item,ship);
+      return (switch (result) {
+        TransactionResult.ok => "Purchased: $item",
+        TransactionResult.insufficientFunds => "You don't have enough credits",
+        TransactionResult.inventoryError => "Your ship can't hold that!",
+        TransactionResult.refusal => "No way!",
+        TransactionResult.wtf => "Wtf!",
+      });
+    } else {
+      TransactionResult result = buyItem(item,ship);
+      return (switch (result) {
+        TransactionResult.ok => "Sold: $item",
+        TransactionResult.insufficientFunds => "The shopkeeper can't afford that!",
+        TransactionResult.inventoryError => "The shopkeeper hasn't room for that!",
+        TransactionResult.refusal => "No way!",
+        TransactionResult.wtf => "Wtf!",
+      });
     }
   }
 }

@@ -1,13 +1,65 @@
 import 'dart:async';
 
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:space_fugue/controllers/fugue_controller.dart';
 import '../inputs/confirm_input.dart';
 import '../item.dart';
 import '../planet.dart';
+import '../ship.dart';
 import '../shop.dart';
 import '../system.dart';
+import '../systems/ship_system.dart';
 
-enum InputMode {main,inventory,hyperspace,planet,repair,shop,broadcast,dnaShop,tavern,confirm}
+enum InputMode {main,menu,hyperspace,planet,repair,shop,broadcast,dnaShop,tavern,confirm}
+
+abstract class MenuEntry {
+  final String letter;
+  final String label;
+  final bool exitMenu;
+
+  MenuEntry(this.letter,this.label,{this.exitMenu = true});
+
+  void activate(MenuController menu);
+}
+
+class ActionEntry extends MenuEntry {
+  final void Function(MenuController) action;
+
+  ActionEntry(super.letter, super.label, this.action, {super.exitMenu = true});
+
+  @override
+  void activate(MenuController menu) {
+    action(menu);
+    if (exitMenu) {
+      menu.exitInputMode();
+    } else {
+      menu.fm.update();
+    }
+  }
+}
+
+class ValueEntry<T> extends MenuEntry {
+  final T value;
+  final void Function(T) onSelect;
+
+  ValueEntry(super.letter, super.label, this.value, this.onSelect, {super.exitMenu = true});
+
+  @override
+  void activate(MenuController menu) {
+    if (exitMenu) {
+      menu.exitInputMode();
+    } else {
+      menu.fm.update();
+    }
+    onSelect(value);
+  }
+}
+
+class ResultMessage {
+  final bool success;
+  final String msg;
+  const ResultMessage(this.msg, this.success);
+}
 
 class ActionCompleter<T> {
   final Completer<T> _completer = Completer<T>();
@@ -35,6 +87,7 @@ class ActionCompleter<T> {
 class MenuController extends FugueController {
   ActionCompleter<ConfirmAction>? confirmationCompleter;
   ActionCompleter<String>? inventoryCompleter;
+  List<MenuEntry> selectionList = [];
   List<InputMode> inputStack = [InputMode.main];
   InputMode get inputMode => inputStack.last;
   bool fullscreen = false;
@@ -105,21 +158,7 @@ class MenuController extends FugueController {
     newInputMode(InputMode.planet);
   }
 
-  void displayShopMenu(Shop shop, {bool changeInputMode = true}) {
-    StringBuffer sb = StringBuffer();
-    for (int i=0; i<shop.items.length;i++) {
-      final item = shop.items.elementAt(i);
-      sb.writeln("${String.fromCharCode(i + 97)}: ${item.name} , ${item.baseCost}");
-    }
-    sb.writeln("(s)ell an item");
-    sb.writeln("e(x)it shop");
-    fm.msgController.addMsg(sb.toString());
-    if (changeInputMode) newInputMode(InputMode.shop);
-  }
-
-  void exitMode() { //fm.msgController.addMsg("Exiting mode: $inputMode");
-    exitInputMode();
-  }
+  String letter(int n) => String.fromCharCode(n + 97);
 
   Future<ConfirmAction> confirmChoice(String msg) {
     fm.msgController.addMsg(msg);
@@ -128,28 +167,70 @@ class MenuController extends FugueController {
     return confirmationCompleter!.future;
   }
 
-  Future<T?> showInventory<T>(List<T> items, {String? headerTxt, String? nothingTxt, bool changeInputMode = true, bool shopping = false}) {
-    inventoryCompleter = ActionCompleter(exitInputMode);
+  List<MenuEntry> createUninstallMenu(Ship ship) {
+    final systems = ship.getAllInstalledSystems.toList();
+    return <MenuEntry> [
+      for (int i = 0; i < systems.length; i++)
+        ValueEntry(letter(i),"${systems[i].name} , ${systems[i].slot}", systems[i],
+                (system) => fm.msgController.addResultMsg(fm.pilotController.uninstallSystem(system, ship)))
+    ];
+  }
+
+  List<MenuEntry> createInstallMenu(Ship ship) {
+    final systems = ship.uninstalledSystems.toList();
+    return <MenuEntry> [
+      for (int i = 0; i < systems.length; i++)
+        ValueEntry(letter(i),"${systems[i].name} , ${systems[i].slot}", systems[i],
+                (system) => fm.pilotController.installSystem(ship, system))
+    ];
+  }
+
+  List<MenuEntry> createInstallSlotMenu(Ship ship, ShipSystem system) {
+    final slots = ship.availableSlots(system).map((s) => s.slot).toList();
+    return <MenuEntry> [
+      for (int i = 0; i < slots.length; i++)
+        ValueEntry(letter(i),"${slots[i]}", slots[i],
+                (slot) => fm.msgController.addResultMsg(fm.pilotController.installSystem(ship, system, slot: slot)))
+    ];
+  }
+
+  List<MenuEntry> createShopMenu(Shop shop, Ship ship) {
+    List<Item> items = shop.items; //filters?
+    final entries = <MenuEntry> [
+      for (int i = 0; i < items.length; i++)
+        ValueEntry(letter(i),"${items[i].name} , ${items[i].baseCost}", items[i],
+                (item) => fm.msgController.addMsg(shop.transaction(item, ship, true)),
+            exitMenu: false)
+    ];
+    entries.add(ActionEntry("s","(s)ell", (m) => showMenu(createShopSellMenu(ship, shop)),exitMenu: false));
+    return entries;
+  }
+
+  List<MenuEntry> createShopSellMenu(Ship ship, Shop shop) { //TODO: filter by shop type
+    final installed = ship.getAllInstalledSystems;
+    final items = ship.inventory.toList().where((i) => !installed.contains(i)).asList();
+    return <MenuEntry> [
+      for (int i = 0; i < items.length; i++)
+        ValueEntry(letter(i),"${items[i].name} , ${items[i].baseCost}", items[i], //TODO: show cost modifier?
+                (item) => fm.msgController.addMsg(shop.transaction(item, ship, false)))
+    ];
+  }
+
+  void showMenu(List<MenuEntry> menuMap, {headerTxt = "Please select:", nothingTxt = "Nothing found"}) {
     StringBuffer sb = StringBuffer();
-    if (items.isEmpty) {
-      fm.msgController.addMsg(nothingTxt ?? "Nothing found");
-      inventoryCompleter?.trigger();
-      return Future<T?>.value(null);
+    if (menuMap.isEmpty) {
+      fm.msgController.addMsg(nothingTxt); return;
     } else {
-      sb.writeln(headerTxt ?? "Please select:");
-      for (int i=0; i<items.length;i++) {
-        final item = items.elementAt(i);
-        if (shopping && item is Item) {
-          sb.writeln("${String.fromCharCode(i + 97)}: ${item.name} , ${item.baseCost}");
-        } else {
-          sb.writeln("${String.fromCharCode(i + 97)}: $item");
-        }
+      menuMap.add(ActionEntry("x", "e(x)it", (m) => exitInputMode()));
+      selectionList = menuMap;
+      sb.writeln(headerTxt);
+      for (final e in selectionList) {
+        sb.writeln("${e.letter}: ${e.label}");
       }
     }
     fm.msgController.addMsg(sb.toString());
-    if (changeInputMode) newInputMode(InputMode.inventory);
-    return inventoryCompleter!.future
-        .then((letter) => items.elementAtOrNull(letter.codeUnitAt(0) - 97));
+    newInputMode(InputMode.menu);
   }
+
 
 }

@@ -1,6 +1,6 @@
-import 'package:space_fugue/inputs/letter_menu_input.dart';
+import 'letter_input.dart';
 
-class HyperSpaceInput extends LetterMenuInput {
+class HyperSpaceInput extends LetterInput {
   const HyperSpaceInput(super.child, super.fm, {super.key});
 
   @override
