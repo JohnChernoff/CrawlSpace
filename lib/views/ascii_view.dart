@@ -1,5 +1,4 @@
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:space_fugue/views/message_log.dart';
 import '../controllers/menu_controller.dart';
@@ -51,24 +50,21 @@ class AsciiViewState extends State<AsciiView> {
             ))
         ]);
     });
-
   }
 
   Widget mainView() {
-    return Column(children: [
-      Expanded(flex: 2, child :Container(color: Colors.black,
-          child: MessageLog(key: const ValueKey("main-log"),
-              messageNotifier: widget.fugueModel.msgController.msgWorker.messageNotifier))),
-      if (!widget.fugueModel.menuController.fullscreen) Expanded(flex: 3, child: Row(children: [
-        Expanded(child: Container(color: Colors.black, child: TextBlockWidget(
-            widget.fugueModel.scannerController.scannerText()
-        ))),
-        AspectRatio(aspectRatio: 2, child: AsciiGrid(widget.fugueModel)),
-        Expanded(child: Container(color: Colors.black, child: Padding(padding: const EdgeInsets.only(left: 8), child: TextBlockWidget(
-          widget.fugueModel.scannerController.statusText(),
-        ))))
-      ]))
-    ]);
+    final fullScreen = widget.fugueModel.menuController.fullscreen;
+    return ColoredBox(color: Colors.black,child: Column(children: [
+        Expanded(child: Row(children: [
+          Expanded(flex: 3, child: MessageLog(key: const ValueKey("main-log"),
+            messageNotifier: widget.fugueModel.msgController.msgWorker.messageNotifier)),
+          if (!fullScreen) Expanded(child: TextBlockWidget(widget.fugueModel.scannerController.scannerText())),
+          if (!fullScreen) Expanded(child: TextBlockWidget(widget.fugueModel.scannerController.statusText()))
+        ])),
+        if (!fullScreen) Expanded(child: Row(children: [ //const ColoredBox(color: Colors.grey),
+          Expanded(child: AspectRatio(aspectRatio: 2, child: AsciiGrid(widget.fugueModel)))
+        ]))
+      ]));
   }
 }
 
@@ -95,8 +91,11 @@ class TextBlockWidget extends StatelessWidget {
       lines.add(Row(children: currentLine));
     }
 
-    return ListView(
-        children: lines,
+    return DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.white)
+        ),
+        child: ListView(children: lines)
     );
   }
 

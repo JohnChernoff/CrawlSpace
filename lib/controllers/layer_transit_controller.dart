@@ -72,11 +72,10 @@ class LayerTransitController extends FugueController {
     }
 
     List<ActionEntry> links = List.generate(system.links.length, (i) =>
-        ActionEntry(String.fromCharCode(97 + i),
-            system.links.elementAt(i).name,
+        ActionEntry(fm.menuController.letter(i),
+            system.links.elementAt(i).toString(),
                 (m) => newSystem(fm.player, system.links.elementAt(i)),exitMenu: true)
     );
-
     fm.menuController.showMenu(links, headerTxt: "Hyperspace");
   }
 

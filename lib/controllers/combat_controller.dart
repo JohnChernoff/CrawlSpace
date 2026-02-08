@@ -30,19 +30,22 @@ class CombatController extends FugueController {
       }
       final cell = ship.loc.level.map.cells[target];
       if (cell is ImpulseCell) { //TODO: sector-ranged weapons?
-        final result = ship.fireWeapons(cell, fm.rnd, ship: ship.targetShip);
-        if (result != null && ship.targetShip != null) {
-          if (result.minCool == null && ship == fm.playerShip) {
-            fm.msgController.addMsg("No weapons ready");
+        final results = ship.fireWeapons(cell, fm.rnd, ship: ship.targetShip);
+        if (results.isEmpty && ship == fm.playerShip) {
+          fm.msgController.addMsg("No weapons ready");
+        } else {
+          for (final result in results) {
+            if (ship.targetShip != null) {
+              if (result.dmg > 0) {
+                fm.msgController.addMsg("${ship.targetShip} takes ${result.dmg} damage");
+                if (ship.targetShip!.takeDamage(result.dmg,result.weapon.dmgType)) explode(ship.targetShip!);
+              }
+              else {
+                fm.msgController.addMsg("${ship.name} misses!");
+              }
+              fm.pilotController.action(ship.pilot, ActionType.combat, actionAuts: 1); //or result.minCool?
+            }
           }
-          else if (result.dmg > 0) {
-            fm.msgController.addMsg("${ship.targetShip} takes ${result.dmg} damage");
-            if (ship.targetShip!.takeDamage(result.dmg)) explode(ship.targetShip!);
-          }
-          else {
-            fm.msgController.addMsg("${ship.name} misses!");
-          }
-          fm.pilotController.action(ship.pilot, ActionType.combat, actionAuts: 1); //or result.minCool?
         }
       } else {
         fm.msgController.addMsg("Wrong firing level");

@@ -15,13 +15,24 @@ enum ShipSystemType {
 enum SystemSlotType {
   unknown([],[]),
   generic([],ShipSystemType.values),
+  //engine,pow,conv
   rimbaud([],[ShipSystemType.engine,ShipSystemType.power,ShipSystemType.powerConverter]),
+  //weapon,pow,conv
   salazar([],[ShipSystemType.weapon,ShipSystemType.power,ShipSystemType.powerConverter]),
+  //weapon,shield,pow,conv
   bauchmann([],[ShipSystemType.weapon,ShipSystemType.shield,ShipSystemType.power,ShipSystemType.powerConverter]),
+  //rimbaud * weapon,shield
   nimrod([SystemSlotType.rimbaud],[ShipSystemType.weapon,ShipSystemType.shield]),
-  lopez([SystemSlotType.salazar],[ShipSystemType.shield]),
+  //salazar * power
+  lopez([SystemSlotType.salazar],[ShipSystemType.power]),
+  //generic * weapon,shield
   smythe([SystemSlotType.generic],[ShipSystemType.weapon,ShipSystemType.shield]),
-  sinclair([SystemSlotType.bauchmann,SystemSlotType.smythe],ShipSystemType.values);
+  //bauchman,smythe
+  sinclair([SystemSlotType.bauchmann,SystemSlotType.smythe],ShipSystemType.values),
+  //generic * engine
+  tanaka([SystemSlotType.generic, SystemSlotType.rimbaud],[ShipSystemType.engine]),
+  //shield
+  gregoriev([],[ShipSystemType.shield]);
 
   final List<SystemSlotType> supportedSlots;
   final List<ShipSystemType> supportedTypes;
@@ -100,6 +111,12 @@ abstract class ShipSystem extends Item {
       enhancement = e; return true;
     }
     return false;
+  }
+
+  double takeDamage(double dmg) {
+    final prevDmg = damage;
+    damage = min(1,damage + dmg);
+    return damage - prevDmg;
   }
 
   double repair(double r) {

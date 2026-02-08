@@ -34,9 +34,9 @@ class InstalledSystem {
 
 class FireResult {
   double dmg;
-  int? minCool;
+  Weapon weapon;
   bool ammoWarn;
-  FireResult(this.dmg,this.minCool,this.ammoWarn);
+  FireResult(this.dmg,this.weapon,this.ammoWarn);
 }
 
 class Scrap extends Item {
@@ -59,6 +59,7 @@ class Ship {
   List<InstalledSystem> systemMap = []; //rename to shipSlots?
   Map<Ammo,int> ammoMap = {};
   double hullDamage = 0;
+  int minCool = 0;
   ShipLocation loc;
   int impulseMapSize = 8;
   Set<Item> inventory = {};
@@ -86,6 +87,7 @@ class Ship {
     pilot = altPilot ?? owner;
     for (final classSlot in shipClass.slots) {
       for (int i=0;i<classSlot.num;i++) {
+        print("$name: Installing: ${classSlot.slot}");
         systemMap.add(InstalledSystem(classSlot.slot,null));
       }
     }
@@ -295,7 +297,7 @@ class Ship {
 
   double get hullStrength => shipClass.maxMass;
 
-  bool takeDamage(double dam) {
+  bool takeDamage(double dam, DamageType dmgType) {
     Shield? shield = getCurrentShield; if (shield != null) {
       dam -= shield.burn(dam,partial: true);
     }
@@ -309,13 +311,14 @@ class Ship {
 
   Weapon? get primaryWeapon => availableWeapons.sorted((w1,w2) => w1.baseCost - w2.baseCost).firstOrNull;
 
-  FireResult? fireWeapons(ImpulseCell target, Random rnd, {Ship? ship}) {
+  List<FireResult> fireWeapons(ImpulseCell target, Random rnd, {Ship? ship}) {
+    List<FireResult> results = [];
     final l = loc;
     if (l is ImpulseLocation && (ship == null || ship.loc.sameLevel(loc))) {
-      double dmg = 0;
       int? minCool;
-      bool ammoWarn = false;
       for (final weapon in readyWeapons) {
+        double dmg = 0;
+        bool ammoWarn = false;
         bool ammoOK = true; int? clips;
         if (weapon.ammo != null) {
           ammoOK = ammoMap.containsKey(weapon.ammo) && ammoMap[weapon.ammo]! > 0;
@@ -332,10 +335,10 @@ class Ship {
           dmg += weapon.fire(l.cell.coord.distance(target.coord), rnd, targetShip: ship, clips: clips);
           if (minCool == null || minCool > weapon.cooldown) minCool = weapon.cooldown;
         }
+        results.add(FireResult(dmg,weapon,ammoWarn));
       }
-      return FireResult(dmg,minCool,ammoWarn);
     }
-    return null;
+    return results;
   }
 
   int get turnsUntilWeaponReady {

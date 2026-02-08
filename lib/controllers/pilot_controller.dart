@@ -3,7 +3,9 @@ import 'package:collection/collection.dart';
 import 'package:space_fugue/controllers/fugue_controller.dart';
 import 'package:space_fugue/controllers/menu_controller.dart';
 import 'package:space_fugue/location.dart';
+import 'package:space_fugue/system.dart';
 import '../grid.dart';
+import '../impulse.dart';
 import '../pilot.dart';
 import '../rng.dart';
 import '../ship.dart';
@@ -65,6 +67,30 @@ class PilotController extends FugueController {
     }
     pilot.auCooldown += ((actionAuts ?? actionType.baseAuts) * mod).round();
     pilot.lastAct = actionType;
+    Ship? ship = fm.pilotMap[pilot]; if (ship != null) {
+      final cell =  ship.loc.cell; //print("Checking hazards... $cell");
+      if (cell is SectorCell) {
+        if (fm.rnd.nextDouble() < cell.ionStorm) {
+          fm.msgController.addMsg("Taking ion system damage...");
+          final system = ship.getAllInstalledSystems.elementAt(fm.rnd.nextInt(ship.getAllInstalledSystems.length));
+          system.takeDamage(fm.rnd.nextDouble() * .1);
+        }
+        if (fm.rnd.nextDouble() < cell.asteroids) {
+          fm.msgController.addMsg("Taking asteroid damage...");
+          ship.takeDamage(fm.rnd.nextInt(10) as double,DamageType.kinetic);
+        }
+      } else if (cell is ImpulseCell) {
+        if (fm.rnd.nextDouble() < cell.ionStorm) {
+          fm.msgController.addMsg("Taking ion system damage...");
+          final system = ship.getAllInstalledSystems.elementAt(fm.rnd.nextInt(ship.getAllInstalledSystems.length));
+          system.takeDamage(fm.rnd.nextDouble() * .25);
+        }
+        if (fm.rnd.nextDouble() < cell.asteroids) {
+          fm.msgController.addMsg("Taking asteroid damage...");
+          ship.takeDamage(fm.rnd.nextInt(40) as double,DamageType.kinetic);
+        }
+      }
+    }
     fm.update();
     if (pilot == fm.player) runUntilNextPlayerTurn();
   }
@@ -120,6 +146,8 @@ class PilotController extends FugueController {
                   .sorted((c1,c2) => playShip.distanceFromCoord(c2.coord).compareTo(playShip.distanceFromCoord(c1.coord)));
               ship.currentPath = ship.loc.level.map.greedyPath(ship.loc.cell, idealCells.first, 3, fm.rnd);
             }
+        } else if (loc is SystemLocation) {
+          ship.currentPath = ship.loc.level.map.greedyPath(ship.loc.cell,ship.targetShip!.loc.cell,3,fm.rnd);
         }
       }
       if (ship.currentPath.isNotEmpty) {

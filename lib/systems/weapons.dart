@@ -130,6 +130,8 @@ class Weapon extends ShipSystem {
     );
   }
 
+  bool get usesAmmo => clipRate > 0;
+
   double fire(double dist, math.Random rnd, {Ship? targetShip, int? clips}) {
     double damage = 0;
     double hitRoll = rnd.nextDouble();
@@ -211,7 +213,7 @@ enum AmmoDamageType {
 }
 
 enum AmmoEgo {
-  heatseeking,lightweight,fedbane
+  none, heatseeking,lightweight,fedbane
 }
 
 class Ammo extends Item {
@@ -230,15 +232,30 @@ class Ammo extends Item {
     required this.ammoType,
     required this.damageType,
     required this.avgDamage,
-    required this.volitity,
-    required this.ego,
-    required this.mass,
-    required this.splashRad,
-    required this.splashFalloff,
-    required this.enchantment,
-    required this.maxEnchantment,
     required super.baseCost,
-    required super.rarity,
+    this.splashRad = 0,
+    this.splashFalloff = .5,
+    this.volitity = .9,
+    this.ego = AmmoEgo.none,
+    this.mass = 1.0,
+    this.enchantment= 0,
+    this.maxEnchantment = 9,
+    super.rarity = .01,
   });
 
+  factory Ammo.fromStock(Ammo ammo) {
+    return Ammo(ammo.name,
+        ammoType: ammo.ammoType,
+        damageType: ammo.damageType,
+        avgDamage: ammo.avgDamage,
+        volitity: ammo.volitity,
+        ego: ammo.ego,
+        mass: ammo.mass,
+        splashRad: ammo.splashRad,
+        splashFalloff: ammo.splashFalloff,
+        enchantment: ammo.enchantment,
+        maxEnchantment: ammo.maxEnchantment,
+        baseCost: ammo.baseCost
+    );
+  }
 }

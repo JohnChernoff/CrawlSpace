@@ -111,6 +111,10 @@ class SectorCell extends GridCell {
     if (mode.scaningBlackhole && blackHole) return true;
     return false;
   }
+
+  @override
+  // TODO: implement hazLevel
+  double get hazLevel => ionStorm + asteroids + nebula; //black hole?
 }
 
 class System extends Level {

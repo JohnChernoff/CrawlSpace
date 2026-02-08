@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:collection/collection.dart';
 import 'package:space_fugue/ship.dart';
 import 'controllers/scanner_controller.dart';
 import 'coord_3d.dart';
@@ -35,6 +36,7 @@ abstract class GridCell {
 
   String toScannerString(Grid grid);
   bool scannable(Grid grid,ScannerMode mode);
+  double get hazLevel;
 
   @override
   String toString() {
@@ -80,7 +82,7 @@ class Grid<T extends GridCell> {
     return list;
   }
 
-  List<T> greedyPath(T start, T goal, int maxSteps, Random rnd, {int nDist = 1}) {
+  List<T> greedyPath(T start, T goal, int maxSteps, Random rnd, {int nDist = 1, double minHaz = 0}) {
     final path = <T>[];
     T current = start;
 
@@ -96,9 +98,8 @@ class Grid<T extends GridCell> {
         return da.compareTo(db);
       });
 
-      final next = candidates.first;
-      if (path.contains(next)) break; // avoid loops
-
+      final next = candidates.firstWhereOrNull((c) => c.hazLevel <= minHaz);
+      if (next == null || path.contains(next)) break; // avoid loops
       path.add(next);
       current = next;
     }

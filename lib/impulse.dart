@@ -5,13 +5,13 @@ import 'controllers/scanner_controller.dart';
 import 'item.dart';
 
 class ImpulseCell extends GridCell {
-  double nebula, ionStorm, asteroid, gammaRad, wakeTurb;
+  double nebula, ionStorm, asteroids, gammaRad, wakeTurb;
   List<Item> items = [];
 
   ImpulseCell(super.coord, {
     this.nebula = 0,
     this.ionStorm = 0,
-    this.asteroid = 0,
+    this.asteroids = 0,
     this.gammaRad = 0,
     this.wakeTurb = 0,
   });
@@ -24,7 +24,7 @@ class ImpulseCell extends GridCell {
   @override
   bool empty(Grid<GridCell> grid, {countPlayer = true}) {
     if (super.hasShips(grid,countPlayer: countPlayer)) return false;
-    if (nebula > 0 || ionStorm > 0 || asteroid > 0 || gammaRad > 0) return false;
+    if (nebula > 0 || ionStorm > 0 || asteroids > 0 || gammaRad > 0) return false;
     if (items.isNotEmpty) return false;
     return true;
   }
@@ -40,6 +40,9 @@ class ImpulseCell extends GridCell {
     }
     return sb.toString();
   }
+
+  @override
+  double get hazLevel => ionStorm + asteroids + nebula + wakeTurb + gammaRad;
 
 }
 
