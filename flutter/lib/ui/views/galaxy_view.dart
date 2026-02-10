@@ -39,7 +39,7 @@ class GalaxyViewState extends State<GalaxyView> {
           Container(color: Colors.black, height: 12),
           if (mapMode != MapMode.hidden) Expanded(
             flex: 4,
-            child: GalaxyMap(fm,legend),
+            child: GalaxyMap(fm),
           ),
           if (mapMode != MapMode.hidden) Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               legendRow(),

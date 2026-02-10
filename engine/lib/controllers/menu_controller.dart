@@ -107,7 +107,6 @@ class MenuController extends FugueController {
   List<MenuEntry> selectionList = [];
   List<InputMode> inputStack = [InputMode.main];
   InputMode get inputMode => inputStack.last;
-  bool fullscreen = false;
   String currentMenuTitle = "";
   MenuController(super.fm);
 

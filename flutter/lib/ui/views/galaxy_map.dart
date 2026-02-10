@@ -5,6 +5,7 @@ import 'package:crawlspace_engine/galaxy.dart';
 import 'package:crawlspace_engine/system.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_force_directed_graph/widget/force_directed_graph_controller.dart';
 import 'package:flutter_force_directed_graph/widget/force_directed_graph_widget.dart';
 import '../graphs/graph.dart';
@@ -14,39 +15,97 @@ import 'galaxy_view.dart';
 
 class GalaxyMap extends StatefulWidget {
   final FugueEngine fugueModel;
-  final GalaxyMapLegend legend;
-  const GalaxyMap(this.fugueModel,this.legend,{super.key});
+  const GalaxyMap(this.fugueModel,{super.key});
 
   @override
   State<StatefulWidget> createState() => GalaxyMapState();
-
 }
 
 class GalaxyMapState extends State<GalaxyMap> {
+  GalaxyMapLegend legend = GalaxyMapLegend.all;
   late final FugueGraph fugueGraph;
-  late final ForceDirectedGraphController<System> _controller =
-  ForceDirectedGraphController(graph: fugueGraph.graph, minScale: .001, maxScale: 5);
+  late final ForceDirectedGraphController<System> _controller;
+  late final FocusNode _focusNode; // Add this
+  late final ForceDirectedGraphWidget graphWidget;
+
+  @override
+  void initState() {//print("InitState for Galaxy View");
+    super.initState();
+    _focusNode = FocusNode(); // Initialize it here
+    fugueGraph = FugueGraph(widget.fugueModel.galaxy);
+    _controller = ForceDirectedGraphController(graph: fugueGraph.graph, minScale: .001, maxScale: 5);
+    _controller.scale = .1;
+    _rebuildGraph();
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      _controller.needUpdate();
+      _focusNode.requestFocus();
+    });
+  }
 
   @override
   void dispose() {
+    _focusNode.dispose(); // Dispose it
     _controller.dispose();
     super.dispose();
   }
 
   @override
-  void initState() {//print("InitState for Galaxy View");
-    super.initState();
-    fugueGraph = FugueGraph(widget.fugueModel.galaxy);
-    _controller.scale = .1;
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      _controller.needUpdate();
+  void didUpdateWidget(GalaxyMap oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.fugueModel != widget.fugueModel) {
+      _rebuildGraph();
+    }
+  }
+
+  void _cycleLegend(bool forwards) {
+    setState(() {
+      if (legend.index < GalaxyMapLegend.values.length - 1) {
+        legend = GalaxyMapLegend.values.elementAt(legend.index + 1);
+      } else {
+        legend = GalaxyMapLegend.values.first;
+      }
     });
+    print("Legend: ${legend.name}");
+  }
+
+  void _rebuildGraph() {
+    print("Building graph...");
+    graphWidget = ForceDirectedGraphWidget(
+      controller: _controller,
+      nodesBuilder: (context, data) =>
+      fugueOptions.getBool(FugueOption.fancyGraph) ? fancyNode(data) : boxSystem(data),
+      edgesBuilder: (context, a, b, distance) {
+        return Container(
+          width: distance,
+          height: 8,
+          color: a == widget.fugueModel.player.system || b == widget.fugueModel.player.system
+              ? Colors.white
+              : Colors.brown,
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    FugueEngine fm = widget.fugueModel;
-    return Listener(
+    return Focus(
+        focusNode: _focusNode,
+        autofocus: true,
+        onKeyEvent: (fn,ev) {
+          if (ev is! KeyDownEvent) return KeyEventResult.ignored;
+          if (ev.logicalKey == LogicalKeyboardKey.escape) {
+            setState(() {
+              currentView = ViewType.normal;
+              widget.fugueModel.update();
+            });
+            return KeyEventResult.handled;
+          } else if (ev.logicalKey == LogicalKeyboardKey.keyC) {
+            _cycleLegend(true);
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+      child: Listener(
       onPointerSignal: (event) {
         if (event is PointerScrollEvent) {
           final deltaY = event.scrollDelta.dy;
@@ -70,26 +129,10 @@ class GalaxyMapState extends State<GalaxyMap> {
               image: DecorationImage(image: AssetImage("img/galaxy.jpg"),fit: BoxFit.fill)
           ),
           //color: Colors.black,
-          child: ForceDirectedGraphWidget(
-            controller: _controller,
-            nodesBuilder: (context, data) { //print("Building: ${data.name}");
-              return  InkWell(onTap: (fm.gameOver) ? null : () => fm.layerTransitController.newSystem(fm.player,data),
-                  child: fugueOptions.getBool(FugueOption.fancyGraph) ? fancyNode(data) : boxSystem(data)
-              ); //check if currently on a planet;
-            },
-            edgesBuilder: (context, a, b, distance) {
-              return Container(
-                width: distance,
-                height: 8,
-                color: a == fm.player.system || b == fm.player.system
-                    ? Colors.white
-                    : Colors.brown,
-              );
-            },
-          ),
+          child: graphWidget,
         ),
       ),
-    );
+    ));
   }
 
   Widget fancyNode(System system) {
@@ -127,11 +170,11 @@ class GalaxyMapState extends State<GalaxyMap> {
   Color systemColor(System system) {
     FugueEngine fm = widget.fugueModel;
     int planV = 0;
-    if (widget.legend == GalaxyMapLegend.planets || widget.legend == GalaxyMapLegend.all) {
+    if (legend == GalaxyMapLegend.planets || legend == GalaxyMapLegend.all) {
       planV = ((system.planets.length / Galaxy.maxPlanets) * 222).floor() + 32;
     }
     return fm.player.system == system ? Colors.yellow :
-    fm.galaxy.homeSystem == system ? Colors.white : switch(widget.legend) {
+    fm.galaxy.homeSystem == system ? Colors.white : switch(legend) {
       GalaxyMapLegend.star => Color(system.starClass.color.argb),
       GalaxyMapLegend.planets => Color.fromRGBO(planV, planV, planV, 1),
       GalaxyMapLegend.fed => Color.fromRGBO(0,0,((system.fedLvl / 100) * 222).floor() + 32, 1), //blue

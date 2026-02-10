@@ -12,8 +12,9 @@ class HelpIntent extends Intent {
   const HelpIntent();
 }
 
-class FullScreenMenu extends Intent {
-  const FullScreenMenu();
+class ViewSelection extends Intent {
+  final ViewType viewType;
+  const ViewSelection(this.viewType);
 }
 
 class CancelToMainIntent extends Intent {
@@ -39,8 +40,11 @@ mixin GeneralInputMixin {
     LogicalKeySet(LogicalKeyboardKey.keyH, LogicalKeyboardKey.shift):
     const HelpIntent(),
 
+    LogicalKeySet(LogicalKeyboardKey.keyG, LogicalKeyboardKey.shift):
+    ViewSelection(currentView == ViewType.galaxy ? ViewType.normal : ViewType.galaxy),
+
     LogicalKeySet(LogicalKeyboardKey.space):
-    const FullScreenMenu(),
+    ViewSelection(currentView == ViewType.textOnly ? ViewType.normal : ViewType.textOnly),
 
     LogicalKeySet(LogicalKeyboardKey.keyV):
     const VersionIntent(),
@@ -59,9 +63,9 @@ mixin GeneralInputMixin {
           return null;
         }
     ),
-    FullScreenMenu: CallbackAction<FullScreenMenu>(
-        onInvoke: (_) { //print("Full Screen Toggle");
-          fm.menuController.fullscreen = !fm.menuController.fullscreen;
+    ViewSelection: CallbackAction<ViewSelection>(
+        onInvoke: (vt) { //print("Full Screen Toggle");
+          currentView = vt.viewType;
           fm.update();
           return null;
         }

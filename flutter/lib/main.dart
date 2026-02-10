@@ -21,6 +21,10 @@ system notes
 system shapes
  */
 
+enum ViewType {normal,textOnly,galaxy}
+
+ViewType currentView = ViewType.normal;
+
 final AudioPlayer fuguePlayer = AudioPlayer();
 PlayerOptions fugueOptions = PlayerOptions();
 

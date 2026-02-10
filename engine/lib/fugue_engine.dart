@@ -35,6 +35,7 @@ class TextBlock {
 }
 
 //cargo systems?  passengers, smuggling? cloaking systems?
+//hyperspace landing spot?   Graph not detecting player location?
 class FugueEngine {
   final _listeners = <void Function()>[];
 
@@ -85,7 +86,6 @@ class FugueEngine {
     planetsideController = PlanetsideController(this);
     scannerController = ScannerController(this);
     audioController = AudioController(NullAudioService(),rnd);
-    //galaxyGraph = GalaxyGraph(this);
     for (final sys in galaxy.systems) {
       systemGraph.addEdges(sys, sys.links);
     }
