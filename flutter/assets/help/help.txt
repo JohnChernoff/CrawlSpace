@@ -1,0 +1,68 @@
+Welcome to crawlspace!
+
+This is one man's attempt to combine Crawl (DCSS) with the old Elite games of the 80's.
+
+Here's the story so far:
+
+In the (not too distant?) future, the galaxy is ruled by the Con-Astra, the Intergalactic Confederation of Regulated Planets (ICORP).
+
+You are a rogue Federation starship captain that's discovered a diabolical secret that could bring ICORP to its knees.  You must first
+discover the secret supercomputer base (Star One) and then broadcast its findings on planets with sufficient commercial activity.  Then
+you can head to Xaxle, the Con-Astra's homeworld, and try and overthrow the current regime.  In the meantime, there are three ICORP agents
+hunting you in superships.  They don't know where you are, but many of the actions you take (especially planetside) will generate clues for
+them, so be careful!
+
+Commands:
+
+Your ship (the @ char) is in an 8x8x8 grid, either at the star system or impulse level.  Numpad Arrow keys move along the x/y grid and
+maintain your current depth.  Combining arrow keys (or middle numpad key) with shift or z moves you down or up, respectively.
+
+Your main view shows a quasi-topdown/isometric perspective of a three-dimensional area.  Things closer to your position appear
+brighter (and vice versa).  Things at your exact depth are the same color as your ship (initially blue).
+
+Your scanners have different modes you can set with the s/S keys and the cell coordinate you're scanning can be selected with the q/a keys.
+Things in the cell you've selected this way will appear white.  To target something you've selected, press T for a ship and t for anything else.
+
+If you enter a system grid with another ship in it, you pull it (and yourself) into impulse level where you can directly interact (mostly fight)
+with things.  To exit impulse and return to system travel, press the period key. To enter impulse without dragging a ship, press the comma key.
+
+To fire on a ship (at impulse level), press f.  All ready weapons will fire at a targeted ship.  To pursue a targeted ship, press the
+numpad plus key.  To wait until your next weapon is ready, press enter.
+
+Planets are accessable by moving your ship to the planet and pressing l to land.  l also launches you back into space from a planet.
+You can also warp to other systems by pressing h (hyperspace) while at a star in your current system.
+
+Summary:
+
+    Movement:
+        numpad arrow keys, combine with shift/z to change depth
+        h: hyperspace
+        l: land/takeoff from a planet
+    Scanning:
+        q - select next upper object in list
+        a - select next lower object in list
+        s - select next scan mode
+        S - select previous scan mode
+        t - target scanned non-ship object
+        T - target scanned ship
+    Combat:
+        f - fire on scanned ship
+        numpad plus - pursue scanned ship
+        enter - wait for next ready waepon
+    Symbols:
+        @ your ship
+        ✦ star (hyperspace conduit)
+        O planet
+        ~ nebula
+        + asteroids
+        # ion storm
+        ≈ ion storm + nebula
+        ✱ asteroids + nebula
+        % ion storm + asteroids
+        ※ ion storm + asteroids + nebula
+***
+
+This game is extremely new and under active development and therefore subject to quite a bit of change.  Feel free to
+contact the author at molechess@gmail.com about basically almost anything or join the discord: https://discord.gg/xuHbaMBq
+
+***
