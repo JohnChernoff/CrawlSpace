@@ -54,6 +54,10 @@ class ScannerTargetModeIntent extends Intent {
   const ScannerTargetModeIntent();
 }
 
+class ToggleSystemIntent extends Intent {
+  const ToggleSystemIntent();
+}
+
 class AwaitIntent extends Intent {
   const AwaitIntent();
 }
@@ -213,6 +217,9 @@ class ShipInput extends StatelessWidget with GeneralInputMixin {
         LogicalKeySet(LogicalKeyboardKey.keyU):
         const InstallationIntent(true),
 
+        LogicalKeySet(LogicalKeyboardKey.quoteSingle):
+        const ToggleSystemIntent(),
+
       },
       actions: {
         ...generalActions,
@@ -332,7 +339,14 @@ class ShipInput extends StatelessWidget with GeneralInputMixin {
               return null;
             }
         ),
+        ToggleSystemIntent: CallbackAction<ToggleSystemIntent>(
+            onInvoke: (_) {
+              if (fm.playerShip != null) fm.pilotController.toggleSystem(fm.playerShip!);
+              return null;
+            }
+        ),
       },
+
       child: child,
     );
   }

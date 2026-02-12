@@ -46,6 +46,16 @@ class PilotController extends FugueController {
     }
   }
 
+  void toggleSystem(Ship ship) {
+    final systems = ship.getAllSystems;
+    final menuEntries = List.generate(systems.length, (i) => ValueEntry(
+        fm.menuController.letter(i),
+        systems.elementAt(i).name,
+        systems.elementAt(i),
+        (s) => s.active = !s.active, exitMenu: true));
+    fm.menuController.showMenu(headerTxt: "Toggle System", menuEntries);
+  }
+
   ResultMessage uninstallSystem(ShipSystem system, Ship ship) {
     if (ship.uninstallSystem(system)) {
       return const ResultMessage("Uninstalled",true);
@@ -108,14 +118,14 @@ class PilotController extends FugueController {
       }
       fm.auTick++;
       fm.player.tick();
-      fm.playerShip?.tick(fm.rnd);
+      fm.playerShip?.tick(rnd: fm.rnd);
     } while (!fm.player.ready);
     fm.update();
   }
 
   void npcShipAct(Ship ship) {
     if (ship == fm.playerShip) return;
-    ship.tick(fm.rnd);
+    ship.tick(rnd: fm.rnd);
     Pilot pilot = ship.pilot; if (pilot == nobody) return;
     if (pilot.ready) {
       final playShip = fm.playerShip;

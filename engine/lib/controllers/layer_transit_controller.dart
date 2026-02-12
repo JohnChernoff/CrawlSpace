@@ -144,6 +144,7 @@ class LayerTransitController extends FugueController {
 
   void _enterImpulse(ImpulseLevel impLvl, Ship? ship, {ImpulseCell? cell, safeDist = 4}) {
     if (ship == null) return;
+    ship.subEngine?.active = false;
     final sysLoc = ship.loc;
     final pic = playerImpulseLoc;
     GridCell targetCell = cell ?? impLvl.map.rndCell(fm.rnd);
@@ -167,6 +168,7 @@ class LayerTransitController extends FugueController {
 
   void enterSublight(Ship? ship) {
     if (ship == null) return;
+    ship.impEngine?.active = false;
     final impLoc = ship.loc;
     if (impLoc is ImpulseLocation) {
       if (ship == fm.playerShip) {

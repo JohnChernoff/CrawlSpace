@@ -134,7 +134,7 @@ class Ship {
     return true;
   }
 
-  Iterable<ShipSystem> get getAllInstalledSystems {
+  Iterable<ShipSystem> get getAllSystems {
     return systemMap.where((s) => (s.system != null)).map((i) => i.system!);
   }
 
@@ -142,7 +142,7 @@ class Ship {
     return systemMap.where((s) => types.contains(s.system?.type)).map((i) => i.system!);
   }
 
-  bool isInstalled(ShipSystem s) => getAllInstalledSystems.contains(s);
+  bool isInstalled(ShipSystem s) => getAllSystems.contains(s);
   Iterable<ShipSystem> get uninstalledSystems => inventory.whereType<ShipSystem>().where((s) => !isInstalled(s));
 
   Iterable<InstalledSystem> get vacantSlots => systemMap.where((sys) => sys.system == null);
@@ -378,7 +378,7 @@ class Ship {
 
   bool setWeaponAmmo(Weapon w, Ammo a) {
     if (w.usesAmmo) {
-      final weapon = getAllInstalledSystems.firstWhereOrNull((e) => e == w);
+      final weapon = getAllSystems.firstWhereOrNull((e) => e == w);
       if (weapon != null) { //print("Setting ${w.name},${w.ammoType}...");
         if (weapon is Weapon && weapon.ammoType == a.ammoType) {
           weapon.ammo = a; //print("${weapon.name} -> ${a.name}");
@@ -395,7 +395,7 @@ class Ship {
       m += ammoMap[ammo]! * ammo.mass;
     }
     m += scrapHeap.fold<double>(0.0, (sum, i) => sum + i.mass);
-    return (getAllInstalledSystems.fold<double>(0.0, (sum, s) => sum + s.mass)) + m;
+    return (getAllSystems.fold<double>(0.0, (sum, s) => sum + s.mass)) + m;
   }
 
   double get availableMass => shipClass.maxMass - currentMass;
@@ -413,29 +413,39 @@ class Ship {
     loc.level.addShip(this, destination);
   }
 
-  void tick(Random rnd) {
+  //TODO: handle power outages?
+  double tick({Random? rnd, dryRun = false}) { //print("Tick... $dryRun");
+    double totalRecharge = 0, totalBurn = 0;
     for (final rss in getInstalledSystems([ShipSystemType.power,ShipSystemType.shield])) {
       if (rss is RechargableShipSystem && rss.active && rss.currentEnergy < rss.currentMaxEnergy) {
-        double recharge;
-        if (rss.currentEnergy < 1) {
-          recharge = (rnd.nextInt(rss.avgRecoveryTime) == 0) ? 1 : 0;
-        } else {
-          recharge = rss.currentMaxEnergy * rss.rechargeRate * (1-rss.damage); //print("Recharging: ${rss.name}: $recharge");
+        //print(rss.name); print(rss.rechargeRate);
+        double recharge = rss.currentMaxEnergy * rss.rechargeRate * (1-rss.damage);
+        if (!dryRun) {
+          if (rnd != null && rss.currentEnergy < 1) {
+            recharge = (rnd.nextInt(rss.avgRecoveryTime) == 0) ? recharge : 0;
+          }
+          rss.recharge(recharge);
         }
-        rss.recharge(recharge);
+        totalRecharge += recharge;
       }
     }
     //double totalBurn = 0;
     for (final s in systemMap) {
       if (s.system != null && s.system!.active) {
         double e = s.system!.powerDraw; //print("Burning: $e");
-        burnEnergy(e); //totalBurn += e;
+        if (!dryRun) {
+          burnEnergy(e);
+          //if (getCurrentEnergy() < 1 && s.system!.type != ShipSystemType.power) s.system!.active = false;
+        }
+        totalBurn += e;
       }
     } //print("$name: Net energy per tick: ${recharge - totalBurn}");
-
-    for (final w in getInstalledSystems([ShipSystemType.weapon,ShipSystemType.launcher])) {
-      if (w is Weapon && w.cooldown > 0) w.cooldown--;
+    if (!dryRun) {
+      for (final w in getInstalledSystems([ShipSystemType.weapon,ShipSystemType.launcher])) {
+        if (w is Weapon && w.cooldown > 0) w.cooldown--;
+      }
     }
+    return totalRecharge - totalBurn;
   }
 
   List<TextBlock> status({bool tactical = false}) {
@@ -447,10 +457,14 @@ class Ship {
     blocks.add(TextBlock("%: ${currentShieldPercentage.toStringAsFixed(2)}",GameColors.lightBlue,true));
     blocks.add(TextBlock("Energy: ${getCurrentEnergy().toStringAsFixed(2)}, ",GameColors.green,false));
     blocks.add(TextBlock("%: ${currentEnergyPercentage.round().toStringAsFixed(2)}",GameColors.lightBlue,true));
+    blocks.add(TextBlock("Energy Rate: ${tick(dryRun: true).round().toStringAsFixed(2)}",GameColors.green,true));
     for (final system in systemMap) { ShipSystem? s = system.system;
       if (s != null) {
         bool cooldown = s is Weapon && s.cooldown > 0;
         blocks.add(TextBlock("${s.name} ${s.active ? '+' : '-'}",cooldown ? GameColors.red : GameColors.white,true));
+        if (s is Weapon && s.ammo != null) {
+          blocks.add(TextBlock("${s.ammo!.name}: ${ammoMap[s.ammo]}",GameColors.coral,true));
+        }
       }
     }
     if (!tactical) {

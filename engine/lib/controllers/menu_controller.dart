@@ -174,7 +174,7 @@ class MenuController extends FugueController {
   }
 
   List<MenuEntry> createUninstallMenu(Ship ship) {
-    final systems = ship.getAllInstalledSystems.toList();
+    final systems = ship.getAllSystems.toList();
     return <MenuEntry> [
       for (int i = 0; i < systems.length; i++)
         ValueEntry(letter(i),"${systems[i].name} , ${systems[i].slot}", systems[i],
@@ -221,7 +221,7 @@ class MenuController extends FugueController {
 
   //TODO: make player inventory like shops?
   List<MenuEntry> createShopSellMenu(Ship ship, Shop shop) { //TODO: filter by shop type
-    final installed = ship.getAllInstalledSystems;
+    final installed = ship.getAllSystems;
     final items = ship.inventory.toList().where((i) => !installed.contains(i)).asList();
     return <MenuEntry> [
       for (int i = 0; i < items.length; i++)

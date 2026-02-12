@@ -22,8 +22,8 @@ enum Hazard {
     final cell = ship.loc.cell;
     if (rnd.nextDouble() < (cell.hazMap[this] ?? 0)) {
       if (this == Hazard.ion) {
-        final system = ship.getAllInstalledSystems.elementAt(
-            rnd.nextInt(ship.getAllInstalledSystems.length));
+        final system = ship.getAllSystems.elementAt(
+            rnd.nextInt(ship.getAllSystems.length));
         final dmg = (rnd.nextDouble() * (cell is ImpulseCell ? .25 : .1)) * turns;
         system.takeDamage(dmg);
         return "${ship.name} takes $dmg ion damage to ${system.name}...";

@@ -37,6 +37,7 @@ class MovementController extends FugueController {
     if (engine == null) {
       return MoveResult.noEngine;
     }
+    engine.active = true; //auto activate
     final auts = (engine.baseAutPerUnitTraversal * dist).round(); //print("Auts: $auts");
     double energyRequired = baseEnergy * (1 / engine.efficiency) * dist;
     if (!ship.burnEnergy(energyRequired)) {
