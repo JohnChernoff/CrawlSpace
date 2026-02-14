@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:collection/collection.dart';
 import 'package:crawlspace_engine/stock_items/stock_engines.dart';
 import 'package:crawlspace_engine/stock_items/stock_power.dart';
 import 'package:crawlspace_engine/systems/engines.dart';
@@ -83,8 +84,8 @@ class FugueEngine {
   ShopOptions shopOptions = ShopOptions();
 
   FugueEngine(this.galaxy,String playerName,{seed = 0}) {
-    rnd = Random();
-    mapRng = Random(seed);
+    rnd = Random(seed);
+    mapRng = Random(seed ^0xAAAAAA);
     speciesRng = Random(seed ^ 0xC0FFEE);
     aiRng = Random(seed ^ 0xBADC0DE);
     itemRng = Random(seed ^ 0xC0BFEED);
@@ -126,7 +127,8 @@ class FugueEngine {
       final techLvl = (level * 10).round();
       final loc = SystemLocation(system, system.map.rndCell(mapRng));
       final shipType = Rng.weightedRandom(pilot.faction.shipWeights.normalized,mapRng);
-      final shipClassType = ShipClassType.values.firstWhere((t) => t.shipclass.type == shipType);
+      print("Ship Type: $shipType");
+      final shipClassType = ShipClassType.values.firstWhereOrNull((t) => t.shipclass.type == shipType) ?? ShipClassType.mentok;
       Ship ship = Ship("${Rng.rndColorName(rnd)}${Rng.rndAnimalName(rnd)}",pilot,
           loc: loc,
           shipClass: shipClassType.shipclass

@@ -189,21 +189,27 @@ class Ship {
   }
 
   //TODO: sort by techLvl
-  bool installRndEngine(Domain domain, int techLvl, Random rnd, {maxAttempts = 100}) {
+  bool installRndEngine(Domain domain, int techLvl, Random rnd, {maxAttempts = 10}) {
+    print("Attempting to install $domain engine <= techlvl $techLvl...");
     int attempts = 0;
-    while (getEngine(domain) == null && attempts++ < maxAttempts) {
-      final engineType = Rng.weightedRandom(pilot.faction.engineWeights.normalized,rnd);
+    while (getEngine(domain) == null && attempts++ < maxAttempts) { //print("Engine weights: ${pilot.faction.engineWeights.normalized}");
+      final engineType = Rng.weightedRandom(pilot.faction.engineWeights.normalized,rnd); //print("Engine Type: $engineType");
       final engineList = stockEngines.entries.where((v) => v.value.engineType == engineType &&
-          v.key.techLvl >= techLvl && availableSlots(v.value.systemData.slot,v.key.type).isNotEmpty &&
+          v.key.techLvl <= techLvl && availableSlots(v.value.systemData.slot,v.key.type).isNotEmpty &&
           v.value.domain == domain);
       if (engineList.isNotEmpty) {
         installSystem(Engine.fromStock(engineList.elementAt(rnd.nextInt(engineList.length)).key));
       }
     }
-    return getEngine(domain) != null ? true : techLvl > 0 ? installRndEngine(domain, 0, rnd) : false;
+    final engine = getEngine(domain);
+    if (engine != null) {
+      print("Installed: $engine"); return true;
+    } else if (techLvl > 0) {
+      return installRndEngine(domain, 0, rnd);
+    } else return false;
   }
 
-  bool installRndPower(int techLvl, Random rnd, {maxAttempts = 100}) {
+  bool installRndPower(int techLvl, Random rnd, {maxAttempts = 10}) {
     int attempts = 0;
     while (getInstalledSystems([ShipSystemType.power]).isEmpty && attempts++ < 100) {
       final powerType = Rng.weightedRandom(pilot.faction.powerWeights.normalized,rnd);
@@ -214,7 +220,7 @@ class Ship {
     return getInstalledSystems([ShipSystemType.power]).isNotEmpty ? true : techLvl > 0 ? installRndPower(0, rnd) : false;
   }
 
-  bool installRndShield(int techLvl, Random rnd, {maxAttempts = 100}) {
+  bool installRndShield(int techLvl, Random rnd, {maxAttempts = 10}) {
     int attempts = 0;
     while (getInstalledSystems([ShipSystemType.shield]).isEmpty && attempts++ < 100) {
       final shieldType = Rng.weightedRandom(pilot.faction.shieldWeights.normalized,rnd);
@@ -225,7 +231,7 @@ class Ship {
     return getInstalledSystems([ShipSystemType.shield]).isNotEmpty ? true : techLvl > 0 ? installRndShield(0, rnd) : false;
   }
 
-  bool installRndWeapon(int techLvl, Random rnd, {maxAttempts = 100}) {
+  bool installRndWeapon(int techLvl, Random rnd, {maxAttempts = 10}) {
     int attempts = 0;
     while (getInstalledSystems([ShipSystemType.weapon]).isEmpty && attempts++ < 100) {
       final dmgType = Rng.weightedRandom(pilot.faction.damageWeights.normalized,rnd);
@@ -236,7 +242,7 @@ class Ship {
     return getInstalledSystems([ShipSystemType.weapon]).isNotEmpty;
   }
 
-  bool installRndLauncher(int techLvl, Random rnd, {maxAttempts = 100}) {
+  bool installRndLauncher(int techLvl, Random rnd, {maxAttempts = 10}) {
     int attempts = 0;
     while (getInstalledSystems([ShipSystemType.launcher]).isEmpty && attempts++ < 100) {
       final dmgType = Rng.weightedRandom(pilot.faction.damageWeights.normalized,rnd);
